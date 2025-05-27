@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/A+B (N times).md",
+                "file": "10. Electronics/11. Signals and Systems/Placeholder.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "A+B (N times)"
+              "title": "Placeholder"
             }
           }
         ]
@@ -220,6 +220,8 @@
   },
   "active": "04dfd1794d3e6b51",
   "lastOpenFiles": [
+    "00. Coding/01. C++/A+B (N times).md",
+    "10. Electronics/11. Signals and Systems/Placeholder.md",
     "10. Electronics/11. Signals and Systems",
     "10. Electronics",
     "README.md",
@@ -228,7 +230,6 @@
     "00. Coding/01. C++/Asterisk Pyramid.md",
     "00. Coding/01. C++/Multiplication Table.md",
     "00. Coding/01. C++/A+B (Until 0 0).md",
-    "00. Coding/01. C++/A+B (N times).md",
     "00. Coding/01. C++/N!.md",
     "00. Coding/01. C++/Efficient I-O Optimization.md",
     "00. Coding/01. C++/Little Min.md",
