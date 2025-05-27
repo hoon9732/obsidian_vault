@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Untitled.md",
+                "file": "00. Coding/01. C++/Year-Month-Date.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "Year-Month-Date"
             }
           }
         ]
@@ -150,13 +150,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "00. Coding/01. C++/Untitled.md",
+                "file": "00. Coding/01. C++/Year-Month-Date.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Untitled"
+              "title": "Outline of Year-Month-Date"
             }
           },
           {
@@ -221,7 +221,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "00. Coding/01. C++/Hello World.md",
-    "00. Coding/01. C++/Untitled.md",
+    "00. Coding/01. C++/Year-Month-Date.md",
     "00. Coding/01. C++/Formatted Output.md",
     "00. Coding/01. C++/Efficient I-O Optimization.md",
     "00. Coding/03. Docker",
