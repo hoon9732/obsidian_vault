@@ -3,7 +3,8 @@
   "providers": [
     {
       "type": "openai",
-      "id": "openai"
+      "id": "openai",
+      "apiKey": "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"
     },
     {
       "type": "anthropic",
@@ -262,8 +263,8 @@
       "dimension": 1024
     }
   ],
-  "chatModelId": "claude-3.7-sonnet",
-  "applyModelId": "gpt-4o-mini",
+  "chatModelId": "gpt-4o",
+  "applyModelId": "gpt-4o",
   "embeddingModelId": "openai/text-embedding-3-small",
   "systemPrompt": "",
   "ragOptions": {
