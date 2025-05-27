@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. Code Test/Efficient I-O Optimization.md",
+                "file": "00. Coding/01. C++/Formatted Output.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Efficient I-O Optimization"
+              "title": "Formatted Output"
             }
           }
         ]
@@ -84,8 +84,7 @@
               "title": "File Tree"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -151,12 +150,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "00. Coding/01. C++/Formatted Output.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of Formatted Output"
             }
           },
           {
@@ -218,19 +218,21 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "a6556fda8371bd25",
+  "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
-    "00. Coding/01. Code Test/Efficient I-O Optimization.md",
+    "00. Coding/01. C++/Efficient I-O Optimization.md",
+    "00. Coding/03. Docker",
+    "00. Coding/02. Python",
     "2025-05-28.md",
-    "00. Coding/01. Code Test/Formatted Output.md",
-    "00. Coding/01. Code Test/Time and Data Retrieval.md",
+    "00. Coding/01. C++/Formatted Output.md",
+    "00. Coding/01. C++/Time and Data Retrieval.md",
     "00. Coding/Efficient I/O Optimization.md",
     "00. Coding/Efficient I",
     "00. Coding/01. Code Test/Efficient I/O Optimization.md",
     "00. Coding/01. Code Test/Efficient I/Efficient I/O Optimization.md",
     "00. Coding/01. Code Test/Efficient I/Efficient I",
     "00. Coding/01. Code Test/Efficient I",
-    "00. Coding/01. Code Test",
+    "00. Coding/01. C++",
     "writings/3. 대회/3. 대회.md",
     "README.md"
   ]
