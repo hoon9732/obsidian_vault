@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "5ebafca6a8cd6c1d",
+        "id": "e73cc5237d40cc29",
         "type": "tabs",
         "children": [
           {
-            "id": "137f2735ab051678",
+            "id": "a500af98fa95fe31",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -235,8 +235,9 @@
       "obsidian42-brat:BRAT": false
     }
   },
-  "active": "7ebd2ae272ae9cf6",
+  "active": "a500af98fa95fe31",
   "lastOpenFiles": [
+    "2025-05-28.md",
     "README.md"
   ]
 }
