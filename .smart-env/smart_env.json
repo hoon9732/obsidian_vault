@@ -20,9 +20,22 @@
   "folder_exclusions": "smart-chats",
   "smart_view_filter": {
     "render_markdown": true,
-    "show_full_path": false
+    "show_full_path": false,
+    "results_limit": "20"
   },
   "smart_notices": {
     "muted": {}
-  }
+  },
+  "smart_threads": {
+    "chat_model": {
+      "adapter": "openai",
+      "openai": {
+        "model_key": "gpt-4o"
+      }
+    },
+    "embed_model": {
+      "model_key": "None"
+    }
+  },
+  "excluded_headings": ""
 }

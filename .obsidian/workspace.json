@@ -204,9 +204,19 @@
               "icon": "wand-sparkles",
               "title": "Smart composer chat"
             }
+          },
+          {
+            "id": "97ee975bdfa60fc5",
+            "type": "leaf",
+            "state": {
+              "type": "smart-chat-view",
+              "state": {},
+              "icon": "message-square",
+              "title": "Smart Chat"
+            }
           }
         ],
-        "currentTab": 8
+        "currentTab": 9
       }
     ],
     "direction": "horizontal",
@@ -235,7 +245,7 @@
       "obsidian42-brat:BRAT": false
     }
   },
-  "active": "a500af98fa95fe31",
+  "active": "97ee975bdfa60fc5",
   "lastOpenFiles": [
     "2025-05-28.md",
     "README.md"
