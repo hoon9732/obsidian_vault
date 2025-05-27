@@ -178,9 +178,19 @@
               "icon": "lucide-git-fork",
               "title": "Graph view"
             }
+          },
+          {
+            "id": "25f5d1559733cf90",
+            "type": "leaf",
+            "state": {
+              "type": "graph-analysis",
+              "state": {},
+              "icon": "GA-ICON",
+              "title": "Graph Analysis"
+            }
           }
         ],
-        "currentTab": 5
+        "currentTab": 6
       },
       {
         "id": "16d7d40778ca733e",
@@ -218,7 +228,7 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "a6556fda8371bd25",
+  "active": "04dfd1794d3e6b51",
   "lastOpenFiles": [
     "00. Coding/01. C++/ASCII Dog.md",
     "00. Coding/01. C++/Code.md",
