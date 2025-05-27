@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#Recursive  ",
+                "query": "tag:#Code",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -218,10 +218,10 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "04dfd1794d3e6b51",
   "lastOpenFiles": [
-    "00. Coding/01. C++/A+B (EOF).md",
     "00. Coding/01. C++/Fast A+B.md",
+    "00. Coding/01. C++/A+B (EOF).md",
     "00. Coding/01. C++/Asterisk Pyramid.md",
     "00. Coding/01. C++/Multiplication Table.md",
     "00. Coding/01. C++/A+B (Until 0 0).md",
