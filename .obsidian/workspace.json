@@ -11,10 +11,14 @@
             "id": "15952aeae930390d",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "00. Coding/01. Code Test/Efficient I/O Optimization.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "O Optimization"
             }
           }
         ]
@@ -247,8 +251,10 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "f5bf5b51359d663b",
+  "active": "15952aeae930390d",
   "lastOpenFiles": [
+    "00. Coding/01. Code Test/Efficient I/O Optimization.md",
+    "00. Coding/01. Code Test/Efficient I",
     "00. Coding/01. Code Test",
     "writings/3. 대회/3. 대회.md",
     "2025-05-28.md",
