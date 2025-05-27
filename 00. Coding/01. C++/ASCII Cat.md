@@ -11,4 +11,4 @@ int main() {
 }
 
 ```
-#Code #I/O
+#Code
