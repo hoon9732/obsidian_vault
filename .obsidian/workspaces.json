@@ -1,228 +1,5 @@
 {
   "workspaces": {
-    "Code": {
-      "main": {
-        "id": "577fdbe528a3c385",
-        "type": "split",
-        "children": [
-          {
-            "id": "33a93a479e9ef655",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "86219e9ca12c6d65",
-                "type": "leaf",
-                "state": {
-                  "type": "markdown",
-                  "state": {
-                    "file": "00. Coding/01. C++/Untitled.md",
-                    "mode": "source",
-                    "source": false
-                  },
-                  "icon": "lucide-file",
-                  "title": "Untitled"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "vertical"
-      },
-      "left": {
-        "id": "d895f15030d0fc15",
-        "type": "split",
-        "children": [
-          {
-            "id": "3abb477d518308a6",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "04dfd1794d3e6b51",
-                "type": "leaf",
-                "state": {
-                  "type": "file-explorer",
-                  "state": {
-                    "sortOrder": "alphabetical",
-                    "autoReveal": false
-                  },
-                  "icon": "lucide-folder-closed",
-                  "title": "Files"
-                }
-              },
-              {
-                "id": "ecc6b39352a787b9",
-                "type": "leaf",
-                "state": {
-                  "type": "search",
-                  "state": {
-                    "query": "tag:#Sni",
-                    "matchingCase": false,
-                    "explainSearch": false,
-                    "collapseAll": false,
-                    "extraContext": false,
-                    "sortOrder": "alphabetical"
-                  },
-                  "icon": "lucide-search",
-                  "title": "Search"
-                }
-              },
-              {
-                "id": "8159a3f1e89c41f5",
-                "type": "leaf",
-                "state": {
-                  "type": "bookmarks",
-                  "state": {},
-                  "icon": "lucide-bookmark",
-                  "title": "Bookmarks"
-                }
-              },
-              {
-                "id": "f5bf5b51359d663b",
-                "type": "leaf",
-                "state": {
-                  "type": "file-tree-view",
-                  "state": {},
-                  "icon": "sheets-in-box",
-                  "title": "File Tree"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "horizontal",
-        "width": 300
-      },
-      "right": {
-        "id": "6771061204cbda31",
-        "type": "split",
-        "children": [
-          {
-            "id": "c7be5bc694fc6847",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "6de8d2fea3a908c0",
-                "type": "leaf",
-                "state": {
-                  "type": "backlink",
-                  "state": {
-                    "collapseAll": false,
-                    "extraContext": false,
-                    "sortOrder": "alphabetical",
-                    "showSearch": false,
-                    "searchQuery": "",
-                    "backlinkCollapsed": false,
-                    "unlinkedCollapsed": true
-                  },
-                  "icon": "links-coming-in",
-                  "title": "Backlinks"
-                }
-              },
-              {
-                "id": "a7ed94913033bdf0",
-                "type": "leaf",
-                "state": {
-                  "type": "outgoing-link",
-                  "state": {
-                    "linksCollapsed": false,
-                    "unlinkedCollapsed": true
-                  },
-                  "icon": "links-going-out",
-                  "title": "Outgoing links"
-                }
-              },
-              {
-                "id": "f22d91a5903c606d",
-                "type": "leaf",
-                "state": {
-                  "type": "tag",
-                  "state": {
-                    "sortOrder": "frequency",
-                    "useHierarchy": true,
-                    "showSearch": false,
-                    "searchQuery": ""
-                  },
-                  "icon": "lucide-tags",
-                  "title": "Tags"
-                }
-              },
-              {
-                "id": "ba3b0b3d2cedb308",
-                "type": "leaf",
-                "state": {
-                  "type": "outline",
-                  "state": {
-                    "file": "00. Coding/01. C++/ASCII Cat.md",
-                    "followCursor": false,
-                    "showSearch": false,
-                    "searchQuery": ""
-                  },
-                  "icon": "lucide-list",
-                  "title": "Outline of ASCII Cat"
-                }
-              },
-              {
-                "id": "ed9699a363dca973",
-                "type": "leaf",
-                "state": {
-                  "type": "git-view",
-                  "state": {},
-                  "icon": "git-pull-request",
-                  "title": "Source Control"
-                }
-              },
-              {
-                "id": "a6556fda8371bd25",
-                "type": "leaf",
-                "state": {
-                  "type": "graph",
-                  "state": {},
-                  "icon": "lucide-git-fork",
-                  "title": "Graph view"
-                }
-              }
-            ],
-            "currentTab": 5
-          },
-          {
-            "id": "16d7d40778ca733e",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "425473d2a19ef89d",
-                "type": "leaf",
-                "state": {
-                  "type": "calendar",
-                  "state": {},
-                  "icon": "calendar-with-checkmark",
-                  "title": "Calendar"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "horizontal",
-        "width": 433.5
-      },
-      "left-ribbon": {
-        "hiddenItems": {
-          "graph:Open graph view": false,
-          "omnisearch:Omnisearch": false,
-          "file-tree-alternative:File Tree Alternative Plugin": false,
-          "obsidian-git:Open Git source control": false,
-          "switcher:Open quick switcher": false,
-          "canvas:Create new canvas": false,
-          "daily-notes:Open today's daily note": false,
-          "templates:Insert template": false,
-          "command-palette:Open command palette": false,
-          "obsidian-kanban:Create new board": false,
-          "markdown-importer:Open format converter": false,
-          "workspaces:Manage workspace layouts": false
-        }
-      },
-      "active": "86219e9ca12c6d65",
-      "mtime": "2025-05-28T02:14:16+09:00"
-    },
     "Snippets": {
       "main": {
         "id": "577fdbe528a3c385",
@@ -445,7 +222,230 @@
       },
       "active": "86219e9ca12c6d65",
       "mtime": "2025-05-28T02:14:58+09:00"
+    },
+    "Code": {
+      "main": {
+        "id": "577fdbe528a3c385",
+        "type": "split",
+        "children": [
+          {
+            "id": "33a93a479e9ef655",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "86219e9ca12c6d65",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "00. Coding/01. C++/Untitled.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "Untitled"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "vertical"
+      },
+      "left": {
+        "id": "d895f15030d0fc15",
+        "type": "split",
+        "children": [
+          {
+            "id": "3abb477d518308a6",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "04dfd1794d3e6b51",
+                "type": "leaf",
+                "state": {
+                  "type": "file-explorer",
+                  "state": {
+                    "sortOrder": "alphabetical",
+                    "autoReveal": false
+                  },
+                  "icon": "lucide-folder-closed",
+                  "title": "Files"
+                }
+              },
+              {
+                "id": "ecc6b39352a787b9",
+                "type": "leaf",
+                "state": {
+                  "type": "search",
+                  "state": {
+                    "query": "tag:#Sni",
+                    "matchingCase": false,
+                    "explainSearch": false,
+                    "collapseAll": false,
+                    "extraContext": false,
+                    "sortOrder": "alphabetical"
+                  },
+                  "icon": "lucide-search",
+                  "title": "Search"
+                }
+              },
+              {
+                "id": "8159a3f1e89c41f5",
+                "type": "leaf",
+                "state": {
+                  "type": "bookmarks",
+                  "state": {},
+                  "icon": "lucide-bookmark",
+                  "title": "Bookmarks"
+                }
+              },
+              {
+                "id": "f5bf5b51359d663b",
+                "type": "leaf",
+                "state": {
+                  "type": "file-tree-view",
+                  "state": {},
+                  "icon": "sheets-in-box",
+                  "title": "File Tree"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal",
+        "width": 300
+      },
+      "right": {
+        "id": "6771061204cbda31",
+        "type": "split",
+        "children": [
+          {
+            "id": "c7be5bc694fc6847",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "6de8d2fea3a908c0",
+                "type": "leaf",
+                "state": {
+                  "type": "backlink",
+                  "state": {
+                    "collapseAll": false,
+                    "extraContext": false,
+                    "sortOrder": "alphabetical",
+                    "showSearch": false,
+                    "searchQuery": "",
+                    "backlinkCollapsed": false,
+                    "unlinkedCollapsed": true
+                  },
+                  "icon": "links-coming-in",
+                  "title": "Backlinks"
+                }
+              },
+              {
+                "id": "a7ed94913033bdf0",
+                "type": "leaf",
+                "state": {
+                  "type": "outgoing-link",
+                  "state": {
+                    "linksCollapsed": false,
+                    "unlinkedCollapsed": true
+                  },
+                  "icon": "links-going-out",
+                  "title": "Outgoing links"
+                }
+              },
+              {
+                "id": "f22d91a5903c606d",
+                "type": "leaf",
+                "state": {
+                  "type": "tag",
+                  "state": {
+                    "sortOrder": "frequency",
+                    "useHierarchy": true,
+                    "showSearch": false,
+                    "searchQuery": ""
+                  },
+                  "icon": "lucide-tags",
+                  "title": "Tags"
+                }
+              },
+              {
+                "id": "ba3b0b3d2cedb308",
+                "type": "leaf",
+                "state": {
+                  "type": "outline",
+                  "state": {
+                    "file": "00. Coding/01. C++/ASCII Cat.md",
+                    "followCursor": false,
+                    "showSearch": false,
+                    "searchQuery": ""
+                  },
+                  "icon": "lucide-list",
+                  "title": "Outline of ASCII Cat"
+                }
+              },
+              {
+                "id": "ed9699a363dca973",
+                "type": "leaf",
+                "state": {
+                  "type": "git-view",
+                  "state": {},
+                  "icon": "git-pull-request",
+                  "title": "Source Control"
+                }
+              },
+              {
+                "id": "a6556fda8371bd25",
+                "type": "leaf",
+                "state": {
+                  "type": "graph",
+                  "state": {},
+                  "icon": "lucide-git-fork",
+                  "title": "Graph view"
+                }
+              }
+            ],
+            "currentTab": 5
+          },
+          {
+            "id": "16d7d40778ca733e",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "425473d2a19ef89d",
+                "type": "leaf",
+                "state": {
+                  "type": "calendar",
+                  "state": {},
+                  "icon": "calendar-with-checkmark",
+                  "title": "Calendar"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal",
+        "width": 433.5
+      },
+      "left-ribbon": {
+        "hiddenItems": {
+          "graph:Open graph view": false,
+          "omnisearch:Omnisearch": false,
+          "file-tree-alternative:File Tree Alternative Plugin": false,
+          "obsidian-git:Open Git source control": false,
+          "switcher:Open quick switcher": false,
+          "canvas:Create new canvas": false,
+          "daily-notes:Open today's daily note": false,
+          "templates:Insert template": false,
+          "command-palette:Open command palette": false,
+          "obsidian-kanban:Create new board": false,
+          "markdown-importer:Open format converter": false,
+          "workspaces:Manage workspace layouts": false
+        }
+      },
+      "active": "86219e9ca12c6d65",
+      "mtime": "2025-05-28T02:15:41+09:00"
     }
   },
-  "active": "Snippets"
+  "active": "Code"
 }
