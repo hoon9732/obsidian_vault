@@ -12,5 +12,9 @@
   "translate",
   "tag-wrangler",
   "note-refactor-obsidian",
-  "templater-obsidian"
+  "templater-obsidian",
+  "calendar",
+  "periodic-notes",
+  "url-into-selection",
+  "obsidian-excalidraw-plugin"
 ]
