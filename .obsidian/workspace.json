@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/N!.md",
+                "file": "00. Coding/01. C++/A+B (N times).md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "N!"
+              "title": "A+B (N times)"
             }
           }
         ]
@@ -220,9 +220,10 @@
   },
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "00. Coding/01. C++/N!.md",
+    "00. Coding/01. C++/A+B (N times).md",
     "00. Coding/01. C++/Efficient I-O Optimization.md",
     "00. Coding/01. C++/Little Min.md",
-    "00. Coding/01. C++/N!.md",
     "00. Coding/01. C++/Print N Lines.md",
     "00. Coding/01. C++/Safari World.md",
     "00. Coding/01. C++/Year-Month-Date.md",
