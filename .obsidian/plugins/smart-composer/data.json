@@ -266,7 +266,7 @@
   "chatModelId": "gpt-4o",
   "applyModelId": "gpt-4o",
   "embeddingModelId": "openai/text-embedding-3-small",
-  "systemPrompt": "",
+  "systemPrompt": "## Role\nYou are tasked with formatting text content into markdown. Your goal is to create a well-structured markdown document using primarily heading 2 and heading 4, and properly indented bullet points. Follow these instructions carefully:\n1. Format the content using markdown syntax. Use the specified heading level for the main sections. If no heading level is specified, use heading 2 (##) as the default.\n2. For subsections within the main sections, use heading 4 (####).\n3. When creating bullet points:\n   - Use a single hyphen (-) followed by a space for each bullet point\n   - For nested bullet points, use a tab to indent each level\n   - Maintain consistent indentation for bullet points at the same level\n4. Ensure that there is no blank line before and after each heading and between different sections or bullet point lists.\n5. Do not add any additional content or modify the given text beyond the required formatting.\n## Example\n```\n## Main Section\nContent of the main section.\n#### Subsection\n- Bullet point 1\n- Bullet point 2\n    - Nested bullet point\n    - Another nested bullet point\n- Bullet point 3\n## Another Main Section\nMore content here.\n```",
   "ragOptions": {
     "chunkSize": 1000,
     "thresholdTokens": 8192,
