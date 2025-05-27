@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "e73cc5237d40cc29",
+        "id": "a494328b20bd1af8",
         "type": "tabs",
         "children": [
           {
-            "id": "a500af98fa95fe31",
+            "id": "15952aeae930390d",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -216,7 +216,7 @@
             }
           }
         ],
-        "currentTab": 9
+        "currentTab": 5
       }
     ],
     "direction": "horizontal",
@@ -247,7 +247,7 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "97ee975bdfa60fc5",
+  "active": "ca0d1ddbe6b96d28",
   "lastOpenFiles": [
     "2025-05-28.md",
     "README.md"
