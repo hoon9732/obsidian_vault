@@ -4,7 +4,6 @@
   "recent-files-obsidian",
   "file-tree-alternative",
   "obsidian-git",
-  "editing-toolbar",
   "dataview",
   "obsidian-outliner",
   "various-complements",
@@ -16,7 +15,6 @@
   "calendar",
   "periodic-notes",
   "url-into-selection",
-  "obsidian-excalidraw-plugin",
   "obsidian-kanban",
   "share-note",
   "graph-analysis",
@@ -27,6 +25,5 @@
   "obsidian-spaced-repetition",
   "smart-connections",
   "smart-composer",
-  "metadata-menu",
-  "obsidian42-brat"
+  "metadata-menu"
 ]

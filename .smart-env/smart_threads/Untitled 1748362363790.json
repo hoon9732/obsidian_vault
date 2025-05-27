@@ -1,0 +1,53 @@
+{
+  "path": ".smart-env/smart_threads/Untitled 1748362363790.json",
+  "last_embed": {
+    "hash": null
+  },
+  "embeddings": {},
+  "last_read": {
+    "hash": null,
+    "mtime": 0
+  },
+  "created_at": 1748362363790,
+  "responses": {},
+  "messages": {
+    "user-1-1748362527112-1": 1
+  },
+  "branches": {},
+  "class_name": "SmartThread2",
+  "key": "Untitled 1748362363790",
+  "blocks": [
+    {
+      "path": null,
+      "last_embed": {
+        "hash": null
+      },
+      "embeddings": {},
+      "text": null,
+      "length": 0,
+      "last_read": {
+        "hash": null,
+        "at": 0
+      },
+      "thread_key": "Untitled 1748362363790",
+      "content": [
+        {
+          "type": "text",
+          "text": "can you answer me?"
+        }
+      ],
+      "role": "user",
+      "tool_calls": null,
+      "tool_call_id": null,
+      "msg_i": 1,
+      "id": "user-1-1748362527112-1",
+      "context": {
+        "has_self_ref": true
+      },
+      "tool_call_output": null,
+      "class_name": "SmartMessage",
+      "branch_i": "1748362527112-1",
+      "key": "Untitled 1748362363790#user-1-1748362527112-1"
+    }
+  ]
+}
