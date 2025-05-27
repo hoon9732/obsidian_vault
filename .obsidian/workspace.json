@@ -176,36 +176,6 @@
             }
           },
           {
-            "id": "356a5a781bd7ad01",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "SpacedRepIcon",
-              "title": "Notes Review Queue"
-            }
-          },
-          {
-            "id": "7ebd2ae272ae9cf6",
-            "type": "leaf",
-            "state": {
-              "type": "smtcmp-chat-view",
-              "state": {},
-              "icon": "wand-sparkles",
-              "title": "Smart composer chat"
-            }
-          },
-          {
-            "id": "97ee975bdfa60fc5",
-            "type": "leaf",
-            "state": {
-              "type": "smart-chat-view",
-              "state": {},
-              "icon": "message-square",
-              "title": "Smart Chat"
-            }
-          },
-          {
             "id": "425473d2a19ef89d",
             "type": "leaf",
             "state": {
@@ -216,7 +186,7 @@
             }
           }
         ],
-        "currentTab": 7
+        "currentTab": 5
       }
     ],
     "direction": "horizontal",
