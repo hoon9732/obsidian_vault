@@ -194,9 +194,19 @@
               "icon": "SpacedRepIcon",
               "title": "Notes Review Queue"
             }
+          },
+          {
+            "id": "7ebd2ae272ae9cf6",
+            "type": "leaf",
+            "state": {
+              "type": "smtcmp-chat-view",
+              "state": {},
+              "icon": "wand-sparkles",
+              "title": "Smart composer chat"
+            }
           }
         ],
-        "currentTab": 7
+        "currentTab": 8
       }
     ],
     "direction": "horizontal",
@@ -218,10 +228,14 @@
       "templater-obsidian:Templater": false,
       "obsidian-excalidraw-plugin:New drawing": false,
       "obsidian-kanban:Create new board": false,
-      "obsidian-spaced-repetition:Review flashcards": false
+      "obsidian-spaced-repetition:Review flashcards": false,
+      "smart-connections:Open: View Smart Connections": false,
+      "smart-connections:Open: Smart Chat Conversation": false,
+      "smart-composer:Open smart composer": false,
+      "obsidian42-brat:BRAT": false
     }
   },
-  "active": "356a5a781bd7ad01",
+  "active": "7ebd2ae272ae9cf6",
   "lastOpenFiles": [
     "README.md"
   ]
