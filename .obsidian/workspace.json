@@ -173,10 +173,10 @@
             "id": "a6556fda8371bd25",
             "type": "leaf",
             "state": {
-              "type": "empty",
+              "type": "graph",
               "state": {},
-              "icon": "lucide-file",
-              "title": "New tab"
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ],
@@ -220,8 +220,8 @@
   },
   "active": "a6556fda8371bd25",
   "lastOpenFiles": [
-    "2025-05-28.md",
     "00. Coding/01. Code Test/Efficient I-O Optimization.md",
+    "2025-05-28.md",
     "00. Coding/01. Code Test/Formatted Output.md",
     "00. Coding/01. Code Test/Time and Data Retrieval.md",
     "00. Coding/Efficient I/O Optimization.md",
