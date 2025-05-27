@@ -150,13 +150,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "00. Coding/01. C++/Formatted Output.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Formatted Output"
+              "title": "Outline"
             }
           },
           {
@@ -218,13 +217,13 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "a6556fda8371bd25",
   "lastOpenFiles": [
+    "00. Coding/01. C++/Formatted Output.md",
     "00. Coding/01. C++/Efficient I-O Optimization.md",
     "00. Coding/03. Docker",
     "00. Coding/02. Python",
     "2025-05-28.md",
-    "00. Coding/01. C++/Formatted Output.md",
     "00. Coding/01. C++/Time and Data Retrieval.md",
     "00. Coding/Efficient I/O Optimization.md",
     "00. Coding/Efficient I",
