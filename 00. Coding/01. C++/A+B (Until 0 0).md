@@ -3,17 +3,13 @@
 using namespace std;
 
 int main() {
-    int T;
-    cin >> T;
-
-    for (int i = 0; i < T; i++) {
+    while (true) {
         int A, B;
         cin >> A >> B;
+        if (A == 0 && B == 0) break;
         cout << A + B << '\n';
     }
-
     return 0;
 }
 
 ```
-#Code 
