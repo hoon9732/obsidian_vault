@@ -1,17 +1,10 @@
 [
-  "obsidian-importer",
   "omnisearch",
   "file-tree-alternative",
   "obsidian-git",
-  "obsidian-outliner",
-  "highlightr-plugin",
-  "note-refactor-obsidian",
   "periodic-notes",
   "obsidian-kanban",
   "graph-analysis",
-  "metadata-menu",
-  "obsidian-excalidraw-plugin",
   "calendar",
-  "dataview",
-  "obsidian-minimal-settings"
+  "dataview"
 ]
