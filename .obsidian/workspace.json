@@ -174,9 +174,19 @@
               "icon": "calendar-with-checkmark",
               "title": "Calendar"
             }
+          },
+          {
+            "id": "a6556fda8371bd25",
+            "type": "leaf",
+            "state": {
+              "type": "graph-analysis",
+              "state": {},
+              "icon": "GA-ICON",
+              "title": "Graph Analysis"
+            }
           }
         ],
-        "currentTab": 4
+        "currentTab": 6
       }
     ],
     "direction": "horizontal",
@@ -195,10 +205,12 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "translate:Open translation view": false,
-      "templater-obsidian:Templater": false
+      "templater-obsidian:Templater": false,
+      "obsidian-excalidraw-plugin:New drawing": false,
+      "obsidian-kanban:Create new board": false
     }
   },
-  "active": "137f2735ab051678",
+  "active": "a6556fda8371bd25",
   "lastOpenFiles": [
     "README.md"
   ]
