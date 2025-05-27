@@ -19,9 +19,12 @@
   "obsidian-minimal-settings",
   "obsidian-style-settings",
   "supercharged-links-obsidian",
-  "workspaces-plus",
   "obsidian-spaced-repetition",
   "smart-connections",
   "smart-composer",
-  "metadata-menu"
+  "metadata-menu",
+  "workspaces-plus",
+  "obsidian-excalidraw-plugin",
+  "calendar",
+  "dataview"
 ]

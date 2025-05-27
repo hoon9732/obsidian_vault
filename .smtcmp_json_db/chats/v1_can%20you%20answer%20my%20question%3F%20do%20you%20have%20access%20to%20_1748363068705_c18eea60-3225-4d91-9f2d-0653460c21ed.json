@@ -1,0 +1,51 @@
+{
+  "id": "c18eea60-3225-4d91-9f2d-0653460c21ed",
+  "title": "can you answer my question? do you have access to ",
+  "messages": [
+    {
+      "role": "user",
+      "content": {
+        "root": {
+          "children": [
+            {
+              "children": [
+                {
+                  "detail": 0,
+                  "format": 0,
+                  "mode": "normal",
+                  "style": "",
+                  "text": "can you answer my question? do you have access to our previous chats?",
+                  "type": "text",
+                  "version": 1
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "paragraph",
+              "version": 1,
+              "textFormat": 0,
+              "textStyle": ""
+            }
+          ],
+          "direction": "ltr",
+          "format": "",
+          "indent": 0,
+          "type": "root",
+          "version": 1
+        }
+      },
+      "promptContent": [
+        {
+          "type": "text",
+          "text": "\n\ncan you answer my question? do you have access to our previous chats?\n\n"
+        }
+      ],
+      "id": "ee78ecfb-4bc0-4ad0-a881-0bc6523b6043",
+      "mentionables": []
+    }
+  ],
+  "createdAt": 1748363068705,
+  "updatedAt": 1748363068705,
+  "schemaVersion": 1
+}

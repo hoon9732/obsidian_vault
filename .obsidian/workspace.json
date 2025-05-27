@@ -204,9 +204,19 @@
               "icon": "message-square",
               "title": "Smart Chat"
             }
+          },
+          {
+            "id": "425473d2a19ef89d",
+            "type": "leaf",
+            "state": {
+              "type": "calendar",
+              "state": {},
+              "icon": "calendar-with-checkmark",
+              "title": "Calendar"
+            }
           }
         ],
-        "currentTab": 4
+        "currentTab": 7
       }
     ],
     "direction": "horizontal",
@@ -237,7 +247,7 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "15952aeae930390d",
+  "active": "7ebd2ae272ae9cf6",
   "lastOpenFiles": [
     "2025-05-28.md",
     "README.md"
