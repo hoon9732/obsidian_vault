@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Untitled.md",
+                "file": "00. Coding/01. C++/Grade Calculation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "Grade Calculation"
             }
           }
         ]
@@ -221,7 +221,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "00. Coding/01. C++/Change Case.md",
-    "00. Coding/01. C++/Untitled.md",
+    "00. Coding/01. C++/Grade Calculation.md",
     "00. Coding/01. C++/Measure Word Length.md",
     "00. Coding/01. C++/ASCII Code.md",
     "00. Coding/01. C++/Matrix Addition.md",
