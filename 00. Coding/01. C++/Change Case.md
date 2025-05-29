@@ -6,13 +6,14 @@ int main() {
     string s;
     cin >> s;
 
-    for (char &c : str) {
+    for (char &c : s) {
         if(islower(c)) c = toupper(c);
-        else c = tolower(c)
+        else c = tolower(c);
     }
 
-    cout << str << '\n';
+    cout << s << '\n';
     return 0;
 }
+
 ```
 #Code #String #Char
