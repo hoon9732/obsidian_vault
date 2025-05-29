@@ -15,4 +15,4 @@ int main() {
 }
 
 ```
-#Code #I-O 
+#Code #I-O #String 
