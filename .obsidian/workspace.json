@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Finding Alphabet.md",
+                "file": "00. Coding/01. C++/Finding Alphabet Index.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Finding Alphabet"
+              "title": "Finding Alphabet Index"
             }
           }
         ]
@@ -221,7 +221,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "00. Coding/01. C++/ASCII Code.md",
-    "00. Coding/01. C++/Finding Alphabet.md",
+    "00. Coding/01. C++/Finding Alphabet Index.md",
     "00. Coding/01. C++/ACM Hotel.md",
     "00. Coding/01. C++/OX Quiz.md",
     "00. Coding/01. C++/Remainders.md",
