@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Strange Symbol.md",
+                "file": "00. Coding/01. C++/Verification Number.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Strange Symbol"
+              "title": "Verification Number"
             }
           }
         ]
@@ -218,8 +218,9 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "04dfd1794d3e6b51",
+  "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "00. Coding/01. C++/Verification Number.md",
     "00. Coding/01. C++/Strange Symbol.md",
     "00. Coding/01. C++/String Ends.md",
     "00. Coding/01. C++/Print Exactly as Input.md",
@@ -247,7 +248,6 @@
     "00. Coding/01. C++/A+B (Until 0 0).md",
     "00. Coding/01. C++/N!.md",
     "00. Coding/01. C++/Efficient I-O Optimization.md",
-    "00. Coding/01. C++/Little Min.md",
     "00. Coding/03. Docker",
     "00. Coding/02. Python",
     "00. Coding/Efficient I",
