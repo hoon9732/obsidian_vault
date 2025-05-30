@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:#cmath",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -218,7 +218,7 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "04dfd1794d3e6b51",
   "lastOpenFiles": [
     "00. Coding/01. C++/OX Quiz.md",
     "00. Coding/01. C++/ACM Hotel.md",
