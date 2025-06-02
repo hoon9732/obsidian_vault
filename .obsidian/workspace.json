@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "ascii",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -218,10 +218,10 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "04dfd1794d3e6b51",
   "lastOpenFiles": [
-    "00. Coding/01. C++/Palindrome Number.md",
     "00. Coding/01. C++/Average Normalization.md",
+    "00. Coding/01. C++/Palindrome Number.md",
     "00. Coding/01. C++/Repaint Chess Board.md",
     "00. Coding/01. C++/Concatenate and Print Strings.md",
     "00. Coding/01. C++/Sum of Digits.md",
