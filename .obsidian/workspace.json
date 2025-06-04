@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Untitled.md",
+                "file": "00. Coding/01. C++/Decomposition Sum.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "Decomposition Sum"
             }
           }
         ]
@@ -221,7 +221,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "00. Coding/01. C++/Finding Prime Numbers.md",
-    "00. Coding/01. C++/Untitled.md",
+    "00. Coding/01. C++/Decomposition Sum.md",
     "00. Coding/01. C++/ACM Hotel.md",
     "00. Coding/01. C++/Welcome Kit.md",
     "00. Coding/01. C++/Right Triangle Check.md",
