@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Right Triangle Check.md",
+                "file": "00. Coding/01. C++/Welcome Kit.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Right Triangle Check"
+              "title": "Welcome Kit"
             }
           }
         ]
@@ -221,6 +221,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "00. Coding/01. C++/Right Triangle Check.md",
+    "00. Coding/01. C++/Welcome Kit.md",
     "00. Coding/01. C++/Average Normalization.md",
     "00. Coding/01. C++/Palindrome Number.md",
     "00. Coding/01. C++/Repaint Chess Board.md",
@@ -245,7 +246,6 @@
     "00. Coding/01. C++/Print Exactly as Input.md",
     "00. Coding/01. C++/Character and String.md",
     "00. Coding/01. C++/Grade Calculation.md",
-    "00. Coding/01. C++/Change Case.md",
     "10. Electronics/11. Signals and Systems",
     "10. Electronics",
     "00. Coding/03. Docker",
