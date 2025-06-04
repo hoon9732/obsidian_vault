@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Average Normalization.md",
+                "file": "00. Coding/01. C++/Right Triangle Check.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Average Normalization"
+              "title": "Right Triangle Check"
             }
           }
         ]
@@ -218,8 +218,9 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "04dfd1794d3e6b51",
+  "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "00. Coding/01. C++/Right Triangle Check.md",
     "00. Coding/01. C++/Average Normalization.md",
     "00. Coding/01. C++/Palindrome Number.md",
     "00. Coding/01. C++/Repaint Chess Board.md",
@@ -245,7 +246,6 @@
     "00. Coding/01. C++/Character and String.md",
     "00. Coding/01. C++/Grade Calculation.md",
     "00. Coding/01. C++/Change Case.md",
-    "00. Coding/01. C++/Measure Word Length.md",
     "10. Electronics/11. Signals and Systems",
     "10. Electronics",
     "00. Coding/03. Docker",
