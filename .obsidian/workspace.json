@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "00. Coding/01. C++/Decomposition Sum.md",
+                "file": "00. Coding/01. C++/Beehive Room Distance.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Decomposition Sum"
+              "title": "Beehive Room Distance"
             }
           }
         ]
@@ -84,8 +84,7 @@
               "title": "File Tree"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -229,8 +228,9 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "a6556fda8371bd25",
+  "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "00. Coding/01. C++/Beehive Room Distance.md",
     "00. Coding/01. C++/Decomposition Sum.md",
     "00. Coding/01. C++/Finding Prime Numbers.md",
     "00. Coding/01. C++/ACM Hotel.md",
@@ -256,7 +256,6 @@
     "00. Coding/01. C++/Verification Number.md",
     "00. Coding/01. C++/Strange Symbol.md",
     "00. Coding/01. C++/String Ends.md",
-    "00. Coding/01. C++/Print Exactly as Input.md",
     "10. Electronics/11. Signals and Systems",
     "10. Electronics",
     "00. Coding/03. Docker",
