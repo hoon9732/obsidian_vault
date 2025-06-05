@@ -20,4 +20,4 @@ int main() {
 }
 
 ```
-#Code #Recuris
+#Code #Recursive 
