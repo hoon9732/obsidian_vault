@@ -84,7 +84,8 @@
               "title": "File Tree"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -178,9 +179,19 @@
               "icon": "lucide-git-fork",
               "title": "Graph view"
             }
+          },
+          {
+            "id": "a77018aac7303501",
+            "type": "leaf",
+            "state": {
+              "type": "graph-analysis",
+              "state": {},
+              "icon": "GA-ICON",
+              "title": "Graph Analysis"
+            }
           }
         ],
-        "currentTab": 5
+        "currentTab": 6
       },
       {
         "id": "16d7d40778ca733e",
@@ -218,7 +229,7 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "a77018aac7303501",
   "lastOpenFiles": [
     "00. Coding/01. C++/Finding Prime Numbers.md",
     "00. Coding/01. C++/Decomposition Sum.md",
