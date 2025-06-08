@@ -27,4 +27,4 @@ int main() {
 }
 
 ```
-#Cofde #Array
+#Code #Array
