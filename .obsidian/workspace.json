@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/12. Introduction to Robotics/Kinetic Energy.md",
+                "file": "10. Electronics/11. Signals and Systems/Untitled.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Kinetic Energy"
+              "title": "Untitled"
             }
           }
         ]
@@ -240,8 +240,10 @@
   },
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
-    "10. Electronics/12. Introduction to Robotics/Quaternion Rotation.md",
+    "10. Electronics/11. Signals and Systems/Course Overview.md",
+    "10. Electronics/11. Signals and Systems/Untitled.md",
     "10. Electronics/12. Introduction to Robotics/Kinetic Energy.md",
+    "10. Electronics/12. Introduction to Robotics/Quaternion Rotation.md",
     "10. Electronics/12. Introduction to Robotics/Homogeneous Transformation.md",
     "10. Electronics/12. Introduction to Robotics/Composition of Rotations.md",
     "10. Electronics/12. Introduction to Robotics/Forward Velocity Kinematics.md",
@@ -265,8 +267,6 @@
     "00. Coding/01. C++/Right Triangle Check.md",
     "00. Coding/01. C++/Average Normalization.md",
     "00. Coding/01. C++/Palindrome Number.md",
-    "00. Coding/01. C++/Repaint Chess Board.md",
-    "00. Coding/01. C++/Concatenate and Print Strings.md",
     "10. Electronics/11. Signals and Systems",
     "10. Electronics",
     "00. Coding/03. Docker",
