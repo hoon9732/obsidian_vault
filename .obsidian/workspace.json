@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/11. Signals and Systems/Singularity Functions.md",
+                "file": "10. Electronics/11. Signals and Systems/DTFT Snippet 8.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Singularity Functions"
+              "title": "DTFT Snippet 8"
             }
           }
         ]
@@ -240,9 +240,10 @@
   },
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "10. Electronics/11. Signals and Systems/Singularity Functions.md",
+    "10. Electronics/11. Signals and Systems/DTFT Snippet 8.md",
     "10. Electronics/11. Signals and Systems/HW2.pdf",
     "10. Electronics/11. Signals and Systems/Laplace Transform.md",
-    "10. Electronics/11. Signals and Systems/Singularity Functions.md",
     "10. Electronics/11. Signals and Systems/Convolution of Discrete-Time Signals.md",
     "10. Electronics/11. Signals and Systems/Quiz 2.md",
     "10. Electronics/11. Signals and Systems/Quiz 1.md",
