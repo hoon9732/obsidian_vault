@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/13. Algorithm Basics/K-Means.md",
+                "file": "10. Electronics/13. Algorithm Basics/Q-Learning.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "K-Means"
+              "title": "Q-Learning"
             }
           }
         ]
@@ -240,10 +240,10 @@
   },
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "10. Electronics/13. Algorithm Basics/K-Means.md",
     "10. Electronics/13. Algorithm Basics/PRM.md",
     "10. Electronics/13. Algorithm Basics/RRT.md",
     "10. Electronics/13. Algorithm Basics/Q-Learning.md",
-    "10. Electronics/13. Algorithm Basics/K-Means.md",
     "10. Electronics/13. Algorithm Basics/DFS.md",
     "10. Electronics/13. Algorithm Basics/Djikstra.md",
     "10. Electronics/13. Algorithm Basics/BFS.md",
