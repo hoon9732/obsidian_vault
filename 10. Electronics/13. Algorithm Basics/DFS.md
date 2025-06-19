@@ -1,6 +1,3 @@
-
----
-
 ### 🔹 What is **DFS** (Depth-First Search)?
 
 **DFS** is a **graph traversal algorithm** that explores as far down a path as possible before backtracking. It dives deep into one branch before trying another. DFS can be implemented **recursively** or using a **stack**.
