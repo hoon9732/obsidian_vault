@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#Cofde",
+                "query": "tag:#Queue",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -84,7 +84,8 @@
               "title": "File Tree"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -238,14 +239,14 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "86219e9ca12c6d65",
+  "active": "ecc6b39352a787b9",
   "lastOpenFiles": [
-    "10. Electronics/13. Algorithm Basics/Stack.md",
+    "10. Electronics/13. Algorithm Basics/K-Means.md",
     "10. Electronics/13. Algorithm Basics/Circular Queue.md",
     "10. Electronics/13. Algorithm Basics/List.md",
+    "10. Electronics/13. Algorithm Basics/Stack.md",
     "10. Electronics/13. Algorithm Basics/DQN.md",
     "10. Electronics/13. Algorithm Basics/Q-Learning.md",
-    "10. Electronics/13. Algorithm Basics/K-Means.md",
     "10. Electronics/13. Algorithm Basics/PRM.md",
     "10. Electronics/13. Algorithm Basics/RRT.md",
     "10. Electronics/13. Algorithm Basics/DFS.md",
