@@ -92,4 +92,4 @@ plt.show()
 * **Steer**: controlled step toward random point.
 * **No global map** required—suitable for complex spaces.
 ---
-#Algorithm
+#Algorithm #Tree
