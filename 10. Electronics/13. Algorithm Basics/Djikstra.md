@@ -69,4 +69,4 @@ print(dijkstra(graph, 'A'))
 * **Relaxation**: update shortest paths dynamically.
 ---
 
-#Algorithm 
+#Algorithm #Queue #Heap
