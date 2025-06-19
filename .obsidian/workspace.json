@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/13. Algorithm Basics/Untitled.md",
+                "file": "10. Electronics/13. Algorithm Basics/Hash.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "Hash"
             }
           }
         ]
@@ -241,7 +241,7 @@
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
     "10. Electronics/13. Algorithm Basics/BFS.md",
-    "10. Electronics/13. Algorithm Basics/Untitled.md",
+    "10. Electronics/13. Algorithm Basics/Hash.md",
     "10. Electronics/13. Algorithm Basics/Priority Queue.md",
     "10. Electronics/13. Algorithm Basics/Circular Queue.md",
     "10. Electronics/13. Algorithm Basics/K-Means.md",
