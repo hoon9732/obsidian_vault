@@ -65,4 +65,4 @@ plt.show()
 * **Euclidean distance**: common metric to assign points.
 * **Unsupervised**: no labeled data used.
 ---
-#Algorithm
+#Algorithm #Clustering 
