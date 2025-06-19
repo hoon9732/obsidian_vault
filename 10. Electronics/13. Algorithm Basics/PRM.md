@@ -108,4 +108,4 @@ plt.show()
 * **Roadmap**: graph of points and safe edges.
 * **KNN**: k-nearest-neighbor connection strategy.
 * **Graph search**: Dijkstra/A\* used after graph construction.
-#Algorithm #
+#Algorithm #Graph #K-NN
