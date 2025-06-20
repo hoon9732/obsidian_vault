@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/13. Algorithm Basics/Stack.md",
+                "file": "10. Electronics/13. Algorithm Basics/Priority Queue.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Stack"
+              "title": "Priority Queue"
             }
           }
         ]
@@ -240,6 +240,8 @@
   },
   "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "10. Electronics/13. Algorithm Basics/Circular Queue.md",
+    "10. Electronics/13. Algorithm Basics/Stack.md",
     "10. Electronics/13. Algorithm Basics/List.md",
     "10. Electronics/13. Algorithm Basics/DQN.md",
     "10. Electronics/13. Algorithm Basics/Djikstra.md",
@@ -255,13 +257,11 @@
     "10. Electronics/13. Algorithm Basics/Postorder Traversal.md",
     "10. Electronics/13. Algorithm Basics/Inorder Traversal.md",
     "10. Electronics/13. Algorithm Basics/Preorder Traversal.md",
-    "10. Electronics/13. Algorithm Basics/Stack.md",
     "10. Electronics/13. Algorithm Basics/Tree.md",
     "10. Electronics/13. Algorithm Basics/Nonlinear Data Structure.md",
     "10. Electronics/13. Algorithm Basics/Linear Data Structure.md",
     "10. Electronics/13. Algorithm Basics/Hash.md",
     "10. Electronics/13. Algorithm Basics/Priority Queue.md",
-    "10. Electronics/13. Algorithm Basics/Circular Queue.md",
     "README.md",
     "10. Electronics/11. Signals and Systems/DTFT Snippet 8.md",
     "10. Electronics/13. Algorithm Basics",
