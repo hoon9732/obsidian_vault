@@ -75,4 +75,4 @@ class Stack:
 
 ---
 
-#Algorithm
+#Algorithm #Stack
