@@ -12,7 +12,18 @@ void pascal() {
 }
 
 int main() {
+	ios::sync_with_stdio(false)
+	cin.tie(nullptr);
 
+	pascal()
+
+	int T;
+	cin >> T;
+	while(T--) {
+		int k, n;
+		cin >> k >> n;
+		cout << apt[k][n] << 
+	}
 }
 ```
 #Code #Array
