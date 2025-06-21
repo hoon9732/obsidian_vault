@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10. Electronics/13. Algorithm Basics/Preorder Traversal.md",
+                "file": "00. Coding/01. C++/Apartment President.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Preorder Traversal"
+              "title": "Apartment President"
             }
           }
         ]
@@ -238,8 +238,10 @@
       "workspaces:Manage workspace layouts": false
     }
   },
-  "active": "04dfd1794d3e6b51",
+  "active": "86219e9ca12c6d65",
   "lastOpenFiles": [
+    "10. Electronics/13. Algorithm Basics/Preorder Traversal.md",
+    "00. Coding/01. C++/Apartment President.md",
     "10. Electronics/13. Algorithm Basics/Postorder Traversal.md",
     "10. Electronics/13. Algorithm Basics/Tree.md",
     "10. Electronics/13. Algorithm Basics/Priority Queue.md",
@@ -259,14 +261,12 @@
     "10. Electronics/13. Algorithm Basics/RRT.md",
     "10. Electronics/13. Algorithm Basics/BFS.md",
     "10. Electronics/13. Algorithm Basics/Inorder Traversal.md",
-    "10. Electronics/13. Algorithm Basics/Preorder Traversal.md",
     "10. Electronics/13. Algorithm Basics/Nonlinear Data Structure.md",
     "10. Electronics/13. Algorithm Basics/Linear Data Structure.md",
     "README.md",
     "10. Electronics/11. Signals and Systems/DTFT Snippet 8.md",
     "10. Electronics/13. Algorithm Basics",
     "10. Electronics/Untitled.md",
-    "10. Electronics/11. Signals and Systems/Singularity Functions.md",
     "10. Electronics/11. Signals and Systems/HW2.pdf",
     "10. Electronics/12. Introduction to Robotics",
     "10. Electronics/11. Signals and Systems",
