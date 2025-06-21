@@ -2,7 +2,7 @@
 #include <iostream>
 using namespace std;
 
-int apt[15][15]
+int apt[15][15];
 
 void pascal() {
 	for (int i = 0; i < 15; ++i) apt[0][i] = i;
@@ -22,8 +22,9 @@ int main() {
 	while(T--) {
 		int k, n;
 		cin >> k >> n;
-		cout << apt[k][n] << 
+		cout << apt[k][n] << '\n';
 	}
+	return 0;
 }
 ```
 #Code #Array
