@@ -4,7 +4,10 @@
 using namespace std;
 
 int main() {
-	ios::sy
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	
 }
 
 ```
