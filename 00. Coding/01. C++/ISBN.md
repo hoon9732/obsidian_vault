@@ -9,10 +9,11 @@ int main() {
 
 	string s;
 	cin >> s;
-	int sum = 0;
+	int sum = 0, idx = -1;
 
 	for (int i = 0; i < 13; ++i) {
-		if (s[i] == '*') {}
+		if (s[i] == '*') { idx = i; continue;}
+		sum += (s[i] - '0') * ((i % 2 == 0) ? 1 : 3);
 	}
 
 
