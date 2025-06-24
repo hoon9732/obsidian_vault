@@ -1,6 +1,6 @@
 ```
 #include <iostream>
-#incluide <string>
+#include <string>
 using namespace std;
 
 int main() {
@@ -21,7 +21,7 @@ int main() {
 		if (temp % 10 == 0) { s[idx] = d + '0'; break; }
 	}
 
-	cout << s << '\n';
+	cout << s[idx] << '\n';
 	return 0;
 }
 
