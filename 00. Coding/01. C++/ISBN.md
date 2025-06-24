@@ -17,7 +17,8 @@ int main() {
 	}
 
 	for (int d = 0; d < 10; ++d) {
-		
+		int temp = sum + d * ((idx % 2 == 0) ? 1 : 3);
+		if (temp % 10 == 0) { s[idx] = d + '0'; break; }
 	}
 
 
