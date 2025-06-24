@@ -21,7 +21,8 @@ int main() {
 		if (temp % 10 == 0) { s[idx] = d + '0'; break; }
 	}
 
-
+	cout << s << '\n';
+	return 0;
 }
 
 ```
