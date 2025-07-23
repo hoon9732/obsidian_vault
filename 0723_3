@@ -1,0 +1,61 @@
+# mts.py
+import sys
+import json
+from pathlib import Path
+from PySide6.QtWidgets import QApplication
+from app.mts.common.localization import Localization
+from app.mts.common.theme_manager import ThemeManager
+from app.mts.gui.initial import InitialScreen
+
+def load_settings():
+    cfg = Path(__file__).parent / "config" / "settings.json"
+    with cfg.open(encoding="utf-8") as f:
+        return json.load(f)
+
+def main():
+    # 1. load user settings
+    settings = load_settings()
+    lang = settings.get("language", "en")
+    theme_name = settings.get("theme", "DARK_VS")
+
+    # 2. boot Qt
+    app = QApplication(sys.argv)
+
+    # 3. init common services
+    loc_path = Path(__file__).parent / "config" / "localization" / f"{lang}.json"
+    loc = Localization(str(loc_path))
+
+    theme = ThemeManager(theme_name)
+    theme.apply(app)
+
+    # 4. show your first screen
+    window = InitialScreen(loc, theme)
+    window.show()
+
+    # 5. start event loop
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
+
+# mui.py
+import asyncio
+import json
+from pathlib import Path
+from app.mui.gen.sensor import SensorSimulator
+
+def load_settings():
+    cfg = Path(__file__).parent / "config" / "settings.json"
+    with cfg.open(encoding="utf-8") as f:
+        return json.load(f)
+
+async def main():
+    settings = load_settings()
+    ws_addr = settings.get("mui_address", "ws://localhost:8765")
+
+    sim = SensorSimulator(address=ws_addr)
+    print(f"[MUI] Starting sensor simulator on {ws_addr}")
+    await sim.start()
+
+if __name__ == "__main__":
+    asyncio.run(main())
