@@ -68,3 +68,40 @@ class ThemeManager(QObject):
         self.apply(app)
         self.theme_changed.emit(theme_path)
 
+# app/mts/common/theme_manager.py
+import qtvscodestyle as qtvsc
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+
+class ThemeManager(QObject):
+    """Apply VS Code–style themes (via QtVSCodeStyle) to the QApplication."""
+    theme_changed = Signal(str)
+
+    def __init__(self, theme_name: str):
+        """
+        :param theme_name: name of a Theme enum, e.g. 'DARK_VS' or 'LIGHT_VS'
+        """
+        super().__init__()
+        # Normalize to qtvsc.Theme member
+        try:
+            self._theme = getattr(qtvsc.Theme, theme_name)
+        except AttributeError:
+            # default to DARK_VS if unknown
+            self._theme = qtvsc.Theme.DARK_VS
+
+    def apply(self, app: QApplication):
+        """Load & set the VSCode-style stylesheet on the app."""
+        # ensure high-DPI icons (recommended by QtVSCodeStyle)
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        stylesheet = qtvsc.load_stylesheet(self._theme)
+        app.setStyleSheet(stylesheet)
+
+    def switch(self, theme_name: str, app: QApplication):
+        """Change theme at runtime."""
+        try:
+            self._theme = getattr(qtvsc.Theme, theme_name)
+        except AttributeError:
+            return  # ignore invalid names
+        self.apply(app)
+        self.theme_changed.emit(theme_name)
