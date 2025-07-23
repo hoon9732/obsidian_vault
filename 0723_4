@@ -1,0 +1,17 @@
+# app/mts/gui/initial.py
+from PySide6.QtWidgets import QMainWindow, QLabel, QWidget, QVBoxLayout
+
+class InitialScreen(QMainWindow):
+    def __init__(self, loc, theme):
+        super().__init__()
+        self.loc   = loc
+        self.theme = theme
+        self.setWindowTitle(loc.get("app.title"))
+        self.resize(800, 600)
+
+        lbl = QLabel(loc.get("menu.settings"), self)
+        layout = QVBoxLayout()
+        layout.addWidget(lbl)
+        central = QWidget()
+        central.setLayout(layout)
+        self.setCentralWidget(central)
