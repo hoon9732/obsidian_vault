@@ -1,0 +1,70 @@
+# app/mts/common/localization.py 
+import json
+from pathlib import Path
+from PySide6.QtCore import QObject, Signal
+
+class Localization(QObject):
+    """Load & serve translated strings; notify on language switch."""
+    language_changed = Signal(str)
+
+    def __init__(self, locale_path: str):
+        super().__init__()
+        self._load(locale_path)
+
+    def _load(self, locale_path: str):
+        path = Path(locale_path)
+        with path.open(encoding="utf-8") as f:
+            self._strings = json.load(f)
+        self._current = path.name
+
+    def get(self, key: str) -> str:
+        """Return translation for `key`, or `key` if missing."""
+        return self._strings.get(key, key)
+
+    def switch(self, locale_path: str):
+        """Reload from new JSON and emit change signal."""
+        self._load(locale_path)
+        self.language_changed.emit(locale_path)
+
+# app/mts/common/theme_manager.py
+import json
+from pathlib import Path
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QApplication
+
+class ThemeManager(QObject):
+    """Load & apply a theme JSON to the QApplication; notify on switch."""
+    theme_changed = Signal(str)
+
+    def __init__(self, theme_path: str):
+        super().__init__()
+        self._load(theme_path)
+
+    def _load(self, theme_path: str):
+        path = Path(theme_path)
+        with path.open(encoding="utf-8") as f:
+            self._theme = json.load(f)
+        self._current = path.name
+
+    def apply(self, app: QApplication):
+        """Generate and set a Qt stylesheet based on loaded theme."""
+        bg   = self._theme.get("background", "#FFFFFF")
+        fg   = self._theme.get("text",       "#000000")
+        font = self._theme.get("font",       "Arial")
+        size = self._theme.get("fontSize",   12)
+        stylesheet = f"""
+            * {{
+                background-color: {bg};
+                color: {fg};
+                font-family: '{font}';
+                font-size: {size}px;
+            }}
+        """
+        app.setStyleSheet(stylesheet)
+
+    def switch(self, theme_path: str, app: QApplication):
+        """Reload new theme, re-apply, and emit change signal."""
+        self._load(theme_path)
+        self.apply(app)
+        self.theme_changed.emit(theme_path)
+
