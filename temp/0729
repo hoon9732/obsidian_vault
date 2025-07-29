@@ -1,0 +1,180 @@
+"""
+missile_server.py
+=================
+
+This module implements a simple TCP server that simulates a missile
+sending out multiple sensor values at a regular, configurable interval.
+
+The server binds to a host and port (defaults are ``127.0.0.1`` and
+``9999``) and waits for a single client to connect.  Once a client
+connects, the server enters an infinite loop where it assembles a
+dictionary of sensor readings and sends it to the client as a JSON
+object terminated by a newline.  Each loop iteration sleeps for the
+specified number of milliseconds.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import random
+import socket
+import sys
+import time
+from typing import Dict
+
+
+def generate_sensor_data() -> Dict[str, object]:
+    """Return a dictionary with simulated sensor readings.
+
+    The dictionary includes a mix of boolean, float, integer and
+    hexadecimal‑like values to demonstrate handling of various Python
+    datatypes when serialised to JSON.
+    """
+    return {
+        "system_ok": random.choice([True, False]),              # bool
+        "altitude_km": round(random.uniform(0.0, 400.0), 2),    # float
+        "speed_mps": round(random.uniform(0.0, 3000.0), 2),     # float
+        "temperature_c": random.randint(-50, 150),              # int
+        "status_message": random.choice(["OK", "STANDBY", "WARNING", "ERROR"]),  # string
+        "flag_word": random.randint(0, 0xFFFF),                 # 16‑bit int
+    }
+
+
+def run_server(host: str, port: int, interval_ms: int) -> None:
+    """Start the sensor server.
+
+    This function binds a listening socket and waits for a single
+    client connection.  Once connected, it continuously sends JSON
+    messages containing sensor data at the requested interval.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
+        try:
+            server_sock.bind((host, port))
+        except OSError as e:
+            print(f"Failed to bind to {host}:{port}: {e}", file=sys.stderr)
+            sys.exit(1)
+        server_sock.listen(1)
+        print(f"Missile sensor server listening on {host}:{port}")
+
+        conn, addr = server_sock.accept()
+        print(f"Client connected from {addr}")
+        with conn:
+            while True:
+                # Build a new payload and send it as JSON followed by '\n'
+                payload: Dict[str, object] = generate_sensor_data()
+                try:
+                    message = json.dumps(payload) + "\n"
+                    conn.sendall(message.encode("utf‑8"))
+                except (BrokenPipeError, ConnectionResetError):
+                    print("Client disconnected, stopping server loop.")
+                    break
+                # Sleep in seconds; convert ms to s
+                time.sleep(interval_ms / 1000.0)
+
+
+def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Simulate a missile sending sensor data to a client.")
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="Interface to bind the server on (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=9999,
+                        help="TCP port to listen for incoming connections (default: 9999)")
+    parser.add_argument("--interval", type=int, default=500,
+                        help="Interval between messages in ms (default: 500)")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_arguments(argv)
+    run_server(args.host, args.port, args.interval)
+
+
+if __name__ == "__main__":
+    main()
+
+python3 missile_server.py --host 127.0.0.1 --port 12345 --interval 200
+
+# modules/socket_client.py
+
+from __future__ import annotations
+
+import json
+import socket
+from typing import Dict, Optional
+
+from PySide6.QtCore import QThread, Signal
+
+class SensorClient(QThread):
+    """A QThread that receives JSON sensor data from a TCP server."""
+
+    data_received: Signal = Signal(dict)
+
+    def __init__(self, host: str = "127.0.0.1", port: int = 9999,
+                 parent: Optional[object] = None) -> None:
+        super().__init__(parent)
+        self.host: str = host
+        self.port: int = port
+        self._running: bool = True
+
+    def run(self) -> None:
+        """Connect to the server and emit data as JSON objects are received."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.connect((self.host, self.port))
+                buffer = ""
+                while self._running:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    try:
+                        buffer += chunk.decode("utf‑8")
+                    except UnicodeDecodeError:
+                        continue
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        if not line:
+                            continue
+                        try:
+                            data: Dict[str, object] = json.loads(line)
+                            if isinstance(data, dict):
+                                self.data_received.emit(data)
+                        except json.JSONDecodeError:
+                            continue
+        except (ConnectionRefusedError, OSError) as exc:
+            print(f"SensorClient: unable to connect to {self.host}:{self.port} ({exc})")
+
+    def stop(self) -> None:
+        """Request the thread to terminate."""
+        self._running = False
+
+# run in vamp_project directory
+pyuic6 -o modules/ui_main.py main.ui
+
+from PySide6.QtWidgets import QHeaderView, QTableWidgetItem
+from modules.socket_client import SensorClient
+
+self.sensor_client = SensorClient(host="127.0.0.1", port=9999, parent=self)
+self.sensor_client.data_received.connect(self.update_sensor_table)
+self.sensor_client.start()
+
+def update_sensor_table(self, data: dict) -> None:
+    """Update the sensor table with received data."""
+    table = widgets.sensorTable  # referring to the QTableWidget created in the UI
+    table.setRowCount(len(data))
+    for row, (key, value) in enumerate(data.items()):
+        key_item = QTableWidgetItem(str(key))
+        value_item = QTableWidgetItem(hex(value) if key == "flag_word" else str(value))
+        table.setItem(row, 0, key_item)
+        table.setItem(row, 1, value_item)
+    # Resize columns to fill available space
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+def closeEvent(self, event):
+    if hasattr(self, "sensor_client"):
+        self.sensor_client.stop()
+        self.sensor_client.wait()
+    event.accept()
+
+python3 missile_server.py --host 127.0.0.1 --port 9999 --interval 200
+
