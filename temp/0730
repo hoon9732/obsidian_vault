@@ -1,0 +1,110 @@
+vamp_project/
+│
+├─ modules/
+│   ├─ gl_viewer.py         # <— new QOpenGLWidget subclass
+│   └─ scene_loader.py      # helper: load terrain + rocket
+└─ assets/
+    ├─ dem.tif
+    └─ rocket.obj / rocket.mtl / textures...
+
+
+widgets.btn_3d.clicked.connect(self.open_3d_view)
+
+def open_3d_view(self):
+    if getattr(self, "_gl_win", None) is None:
+        from modules.gl_viewer import GLViewerWindow
+        self._gl_win = GLViewerWindow(parent=self)
+        # connect rocket telemetry → update table
+        self._gl_win.telemetry.connect(self.update_sensor_table)
+        self._gl_win.destroyed.connect(lambda _: setattr(self, "_gl_win", None))
+    self._gl_win.show()
+
+# modules/gl_viewer.py
+from PySide6.QtWidgets import QMainWindow, QOpenGLWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QVector3D
+from .scene_loader import load_scene   # you’ll write this
+
+class GLWidget(QOpenGLWidget):
+    telemetry = Signal(dict)        # emits {"altitude":…, "speed":…}
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.ClickFocus)
+        self.camera_theta = 0.0     # orbit angles
+        self.camera_phi   = 45.0
+        self.camera_dist  = 8000.0  # metres
+        self.rocket_pos   = QVector3D(0,0,0)
+        self.animation_t  = 0.0     # seconds since launch
+        self.launched     = False
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(16)        # ~60 FPS
+
+    # --- OpenGL hooks --------------------------------------------------
+    def initializeGL(self):
+        # set up OpenGL state, compile shaders, upload VAOs from scene_loader
+        self.scene = load_scene()   # returns dict {terrainVAO,rocketVAO,counts,...}
+
+    def resizeGL(self,w,h):
+        glViewport(0,0,w,h)
+
+    def paintGL(self):
+        # clear, set camera matrices, draw terrain, draw rocket
+        # ...
+        pass
+
+    # --- input ---------------------------------------------------------
+    def mouseMoveEvent(self, ev):
+        if ev.buttons() & Qt.LeftButton:
+            dx, dy = ev.position() - ev.oldPos()
+            self.camera_theta += dx*0.3
+            self.camera_phi   += dy*0.3
+            self.update()
+
+    def wheelEvent(self, ev):
+        self.camera_dist *= 0.9 if ev.angleDelta().y() > 0 else 1.1
+        self.update()
+
+    # --- logic ---------------------------------------------------------
+    def tick(self):
+        if self.launched:
+            self.animation_t += 0.016
+            # simple kinematics: s = ut + ½at²
+            self.rocket_pos.setY(0.5*9.81*self.animation_t**2)
+            # emit telemetry
+            self.telemetry.emit({
+                "altitude": self.rocket_pos.y(),
+                "speed": 9.81*self.animation_t,
+                "accel": 9.81,
+            })
+        self.update()
+
+
+# in scene_loader.py
+import rasterio
+import numpy as np
+from OpenGL.GL import *
+
+def load_scene():
+    with rasterio.open("assets/dem.tif") as src:
+        dem = src.read(1)      # 2-D float32
+        scale_x = src.res[0]   # metres per pixel
+        scale_y = src.res[1]
+
+    # build a grid of vertices (x,z is horizontal; y = elevation)
+    h, w = dem.shape
+    xs, zs = np.meshgrid(np.arange(w)*scale_x, np.arange(h)*scale_y)
+    vertices = np.stack([xs, dem, zs], axis=-1).astype(np.float32).ravel()
+
+    # create VBO, VAO, send to GPU … return VAO id & vertex count
+
+
+import pyassimp
+scene = pyassimp.load("assets/rocket.obj")
+# iterate meshes → extract positions / normals / uvs, create VAO
+
+
+btn = QPushButton("Launch")
+btn.clicked.connect(lambda: gl_widget.launched = True)
