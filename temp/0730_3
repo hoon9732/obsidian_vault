@@ -1,0 +1,182 @@
+# --- at top of missile_server.py -------------------------------------------
+import math, itertools, random
+_generator_state = {}               # sensor-name → state tuple
+
+# --- add NEW generator helpers ---------------------------------------------
+def _gen_ramp(defn):
+    """Linear ramp up or down with optional noise."""
+    name = defn["name"]
+    cur = _generator_state.get(name, defn["start"])
+    step = defn["step"]
+    if defn.get("direction", "up") == "down":
+        step = -step
+    cur += step
+    noise = random.uniform(-defn.get("noise", 0), defn.get("noise", 0))
+    _generator_state[name] = cur
+    return cur + noise
+
+def _gen_converge(defn):
+    """Exponential decay/ascent towards target bound."""
+    name = defn["name"]
+    cur = _generator_state.get(name, defn["start"])
+    target = defn["target"]
+    factor = defn.get("factor", 0.95)
+    cur = target + (cur - target) * factor
+    _generator_state[name] = cur
+    return cur
+
+def _gen_square(defn):
+    """Square-wave between min and max with given period (samples)."""
+    name = defn["name"]
+    idx = _generator_state.get(name, 0)
+    _generator_state[name] = idx + 1
+    period = defn["period"]
+    half = period // 2
+    return defn["max"] if (idx % period) < half else defn["min"]
+
+def _gen_sine(defn):
+    """Sine oscillation."""
+    name = defn["name"]
+    idx = _generator_state.get(name, 0)
+    _generator_state[name] = idx + 1
+    amp = defn["amplitude"]
+    per = defn["period"]
+    center = defn["center"]
+    val = center + amp * math.sin(2 * math.pi * idx / per)
+    return val
+
+# --- extend map -------------------------------------------------------------
+GEN_MAP.update({
+    "ramp": _gen_ramp,
+    "converge": _gen_converge,
+    "square": _gen_square,
+    "sine": _gen_sine,
+})
+
+
+
+
+
+{
+  "sensors": [
+    { "name": "PSU_28V_BUS",       "type": "float", "generator": "ramp",
+      "start": 24.0, "step": 0.02, "noise": 0.1, "direction": "up",
+      "range": [24.0, 32.0] },
+
+    { "name": "PSU_5V_BUS",        "type": "float", "generator": "ramp",
+      "start": 4.8,  "step": 0.005, "noise": 0.02, "direction": "up",
+      "range": [4.75, 5.25] },
+
+    { "name": "INS_PITCH",         "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 2.0, "period": 200,
+      "range": [-5.0, 5.0] },
+
+    { "name": "INS_ROLL",          "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 3.0, "period": 250,
+      "range": [-8.0, 8.0] },
+
+    { "name": "INS_YAW",           "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 1.5, "period": 180,
+      "range": [-5.0, 5.0] },
+
+    { "name": "GCU_FCU_TEMP",      "type": "float", "generator": "converge",
+      "start": 20.0, "target": 55.0, "factor": 0.97,
+      "range": [0.0, 70.0] },
+
+    { "name": "APU_RPM",           "type": "int",   "generator": "square",
+      "min": 0, "max": 60000, "period": 400,
+      "range": [0, 65000] },
+
+    { "name": "BCU_HYD_PRESS",     "type": "float", "generator": "converge",
+      "start": 0.0, "target": 28.0, "factor": 0.94,
+      "range": [20.0, 30.0] },
+
+    { "name": "TVC_NOZZ_ANGLE",    "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 5.0, "period": 300,
+      "range": [-8.0, 8.0] },
+
+    { "name": "TVC_NOZZ_RATE",     "type": "float", "generator": "ramp",
+      "start": 0.0, "step": 0.02, "noise": 0.01, "direction": "up",
+      "range": [0.0, 2.0] },
+
+    { "name": "IMU_ACC_X",         "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 0.5, "period": 120,
+      "range": [-2.0, 2.0] },
+
+    { "name": "IMU_ACC_Y",         "type": "float", "generator": "sine",
+      "center": 0.0, "amplitude": 0.5, "period": 120,
+      "range": [-2.0, 2.0] },
+
+    { "name": "IMU_ACC_Z",         "type": "float", "generator": "sine",
+      "center": 9.81, "amplitude": 0.3, "period": 120,
+      "range": [9.0, 11.0] },
+
+    { "name": "GPS_ALT",           "type": "float", "generator": "ramp",
+      "start": 100.0, "step": 1.0, "noise": 0.5, "direction": "up",
+      "range": [0.0, 150000.0] },
+
+    { "name": "GPS_VEL",           "type": "float", "generator": "converge",
+      "start": 0.0, "target": 1200.0, "factor": 0.98,
+      "range": [0.0, 1500.0] },
+
+    { "name": "RAD_ALT",           "type": "float", "generator": "ramp",
+      "start": 100.0, "step": 0.8, "noise": 0.3, "direction": "up",
+      "range": [0.0, 2000.0] },
+
+    { "name": "BCU_FLOW_RATE",     "type": "float", "generator": "square",
+      "min": 0.1, "max": 0.5, "period": 240,
+      "range": [0.0, 0.6] },
+
+    { "name": "PSU_12V_BUS",       "type": "float", "generator": "ramp",
+      "start": 11.5, "step": 0.01, "noise": 0.05,
+      "range": [11.0, 13.0] },
+
+    { "name": "BAT_SOC",           "type": "float", "generator": "converge",
+      "start": 100.0, "target": 30.0, "factor": 0.999,
+      "range": [20.0, 100.0] },
+
+    { "name": "BAT_TEMP",          "type": "float", "generator": "sine",
+      "center": 25.0, "amplitude": 5.0, "period": 360,
+      "range": [-10.0, 60.0] },
+
+    { "name": "FCU_PITCH_RATE",    "type": "float", "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "up",
+      "range": [-10.0, 10.0] },
+
+    { "name": "FCU_YAW_RATE",      "type": "float", "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "down",
+      "range": [-10.0, 10.0] },
+
+    { "name": "FCU_ROLL_RATE",     "type": "float", "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "up",
+      "range": [-10.0, 10.0] },
+
+    { "name": "APU_TEMP",          "type": "float", "generator": "converge",
+      "start": 20.0, "target": 650.0, "factor": 0.995,
+      "range": [0.0, 800.0] },
+
+    { "name": "TVC_SERVO_CURR",    "type": "float", "generator": "square",
+      "min": 0.0, "max": 15.0, "period": 90,
+      "range": [0.0, 20.0] },
+
+    { "name": "GNC_CPU_LOAD",      "type": "int",   "generator": "sine",
+      "center": 45, "amplitude": 10, "period": 240,
+      "range": [0, 100] },
+
+    { "name": "OBC_TEMP",          "type": "float", "generator": "sine",
+      "center": 55.0, "amplitude": 4.0, "period": 300,
+      "range": [0.0, 80.0] },
+
+    { "name": "RCS_N2_PRESS",      "type": "float", "generator": "converge",
+      "start": 20.0, "target": 6.0, "factor": 0.995,
+      "range": [5.0, 22.0] },
+
+    { "name": "RADAR_SIG_STRENGTH","type": "float", "generator": "square",
+      "min": -90.0, "max": -20.0, "period": 500,
+      "range": [-100.0, -10.0] },
+
+    { "name": "LINK_RSSI",         "type": "float", "generator": "square",
+      "min": -100.0, "max": -40.0, "period": 600,
+      "range": [-120.0, -20.0] }
+  ]
+}
