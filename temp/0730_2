@@ -1,0 +1,13 @@
+I need minor fixes with the tab-table and persistency features you have prepared before.
+1. I now have 9 tabs(tab, tab_2,... tab_9) in the tabWidget each with 9 sensorTables(sensorTable, sensorTable_2, ... , sensorTable_9)
+I placed the sensor json browsing button outside the tabwidget, in the extraTopMenu. When pressing that button while tab_n is open, i want the sensorTable_n
+on the tab_n to show the corresponding sensor data. Also, each tab should also have their 'last opened json' set as their default. All tabs and subsidiary table
+should work the same as the original tab-table you implemented.
+2. switching between tabs should not affect the real time table update. Switching between tabs or loading new json should stop the graph, and start over. Currently, loading new json simply stops
+graph generation and it does not start again.
+3. i need more value generator patterns for the server.(1-ascending/descending indefinitely with subtle random movements, 2- ascending/descending in a converging curve towards upper/lower bound, 3 - random but in a square wave, 4 - sin oscillation)
+and i also need new sensors with new parameters needed for the value generator in the json files. Give me a longer and more professional looking json sensor list
+using terminologies such as ex: GCU_28V, within range [24.0~32.0], and many missile related acronyms. Give me a list of missile sensors in acronyms by researching the internet, and actual possible parameters related. I need at least 30 sensors.
+4. starting and pausing the sensor data to be shown on table should generate a log file with all the data shown on table and their real time. they should be saved in a separate logs folder.
+btn_logs should be able to open up the folder in file explorer.
+5. the checkboxes should be global to all tab-tables. all checkboxes should be applied without the need of clicking tabs back and forth.
