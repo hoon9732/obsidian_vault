@@ -1,0 +1,115 @@
+{
+  "sensors": [
+    { "name": "INS_PITCH",         "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 2.0, "period": 200, "noise": 1.0,
+      "range": [-5.0, 5.0] },
+
+    { "name": "INS_ROLL",          "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 3.0, "period": 250, "noise": 1.0,
+      "range": [-8.0, 8.0] },
+
+    { "name": "INS_YAW",           "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 1.5, "period": 180, "noise": 1.0,
+      "range": [-5.0, 5.0] },
+
+    { "name": "GCU_FCU_TEMP",      "type": "float", "unit": "℃",  "generator": "converge",
+      "start": 20.0, "target": 55.0, "factor": 0.97, "noise": 1.0,
+      "range": [0.0, 70.0] },
+
+    { "name": "APU_RPM",           "type": "int", "unit": "RPM",    "generator": "square",
+      "min": 0, "max": 60000, "period": 400, "noise": 1.0,
+      "range": [0, 65000] },
+
+    { "name": "BCU_HYD_PRESS",     "type": "float", "unit": "psi",  "generator": "converge",
+      "start": 0.0, "target": 28.0, "factor": 0.94, "noise": 1.0,
+      "range": [20.0, 30.0] },
+
+    { "name": "TVC_NOZZ_ANGLE",    "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 5.0, "period": 300, "noise": 1.0,
+      "range": [-8.0, 8.0] },
+
+    { "name": "TVC_NOZZ_RATE",     "type": "float", "unit": "deg",  "generator": "ramp",
+      "start": 0.0, "step": 0.02, "noise": 0.01, "direction": "up",
+      "range": [0.0, 2.0] },
+
+    { "name": "IMU_ACC_X",         "type": "float", "unit": "m/s^2",  "generator": "sine",
+      "center": 0.0, "amplitude": 0.5, "period": 120, "noise": 0.2,
+      "range": [-2.0, 2.0] },
+
+    { "name": "IMU_ACC_Y",         "type": "float", "unit": "m/s^2",  "generator": "sine",
+      "center": 0.0, "amplitude": 0.5, "period": 120, "noise": 0.4,
+      "range": [-2.0, 2.0] },
+
+    { "name": "IMU_ACC_Z",         "type": "float", "unit": "m/s^2",  "generator": "sine",
+      "center": 9.81, "amplitude": 0.3, "period": 120, "noise": 0.2,
+      "range": [9.0, 11.0] },
+
+    { "name": "GPS_ALT",           "type": "float", "unit": "m",  "generator": "ramp",
+      "start": 100.0, "step": 1.0, "noise": 0.5, "direction": "up",
+      "range": [0.0, 150000.0] },
+
+    { "name": "GPS_VEL",           "type": "float", "unit": "m/s",  "generator": "converge",
+      "start": 0.0, "target": 1200.0, "factor": 0.98, "noise": 10.0,
+      "range": [0.0, 1500.0] },
+
+    { "name": "RAD_ALT",           "type": "float", "unit": "m",  "generator": "ramp",
+      "start": 100.0, "step": 0.8, "noise": 0.3, "direction": "up",
+      "range": [0.0, 2000.0] },
+
+    { "name": "BCU_FLOW_RATE",     "type": "float", "unit": "rate",  "generator": "square",
+      "min": 0.1, "max": 0.5, "period": 240, "noise": 0.1,
+      "range": [0.0, 0.6] },
+
+    { "name": "PSU_12V_BUS",       "type": "float", "unit": "V",  "generator": "ramp",
+      "start": 11.5, "step": 0.01, "noise": 0.05,
+      "range": [11.0, 13.0] },
+
+    { "name": "BAT_SOC",           "type": "float", "unit": "s",  "generator": "converge",
+      "start": 100.0, "target": 30.0, "factor": 0.999, "noise": 1.0,
+      "range": [20.0, 100.0] },  
+
+    { "name": "BAT_TEMP",          "type": "float", "unit": "℃",  "generator": "sine",
+      "center": 25.0, "amplitude": 5.0, "period": 360, "noise": 1.0,
+      "range": [-10.0, 60.0] },
+
+    { "name": "FCU_PITCH_RATE",    "type": "float", "unit": "rate",  "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "up", "noise": 1.0,
+      "range": [-10.0, 10.0] },
+
+    { "name": "FCU_YAW_RATE",      "type": "float", "unit": "rate",  "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "down", "noise": 1.0,
+      "range": [-10.0, 10.0] },
+
+    { "name": "FCU_ROLL_RATE",     "type": "float", "unit": "rate",  "generator": "ramp",
+      "start": 0.0, "step": 0.05, "direction": "up", "noise": 1.0,
+      "range": [-10.0, 10.0] },
+
+    { "name": "APU_TEMP",          "type": "float", "unit": "℃",  "generator": "converge",
+      "start": 20.0, "target": 650.0, "factor": 0.995, "noise": 1.0,
+      "range": [0.0, 800.0] },
+
+    { "name": "TVC_SERVO_CURR",    "type": "float", "unit": "rad/s",  "generator": "square",
+      "min": 0.0, "max": 15.0, "period": 90, "noise": 1.0,
+      "range": [0.0, 20.0] },
+
+    { "name": "GNC_CPU_LOAD",      "type": "int", "unit": "%",    "generator": "sine",
+      "center": 45, "amplitude": 10, "period": 240, "noise": 1.0,
+      "range": [0, 100] },
+
+    { "name": "OBC_TEMP",          "type": "float", "unit": "℃",  "generator": "sine",
+      "center": 55.0, "amplitude": 4.0, "period": 300, "noise": 1.0,
+      "range": [0.0, 80.0] },
+
+    { "name": "RCS_N2_PRESS",      "type": "float", "unit": "%",  "generator": "converge",
+      "start": 20.0, "target": 6.0, "factor": 0.995, "noise": 1.0,
+      "range": [5.0, 22.0] },
+
+    { "name": "RADAR_SIG_STRENGTH","type": "float", "unit": "A",  "generator": "square",
+      "min": -90.0, "max": -20.0, "period": 500, "noise": 1.0,
+      "range": [-100.0, -10.0] },
+
+    { "name": "LINK_RSSI",         "type": "float", "unit": "A",  "generator": "square",
+      "min": -100.0, "max": -40.0, "period": 600, "noise": 1.0,
+      "range": [-120.0, -20.0] }
+  ]
+}
