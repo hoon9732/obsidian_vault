@@ -1,0 +1,46 @@
+*** All codes should follow SRP(Single Responsiblity Principle), OCP(Open-Closed Principle), LSP(Liskov Substitution Principle), ISP(Interface Segregation Principle), DSP(Dependency Inversion Principle)
+
+**Make sure that all the text on the GUI keeps in mind change of the language settings, so that all the text can be changed to another language based on a separate localization file(ex: polish, korean).
+
+*Keep in mind to use the qtvscodestyle library layout for all the GUI design. Style theme(Light, Dark) should be changeable in the settings UI.
+
+*More such setting features(language, GUI color, font, fontsize, etc...) should be easily addable and all configurable in the Settings screen as in most softwares. It would be great to follow the most stable and widely used code structure and template for softwares.
+
+I need to create a MTS(Missile testing software) and MUI(Missile Under Inspection) software, each functioning as a tester and the tested object.
+
+The two software shall exchange simulated sensor data via socket with websockets library in a single PC(both software would be run in the same PC for testing).
+
+The MUI would generate various signals in real time, simulating sensors connected to a fictional missle. For example, multiple sensors(ex: sensor_A, sensor_B, etc.) would generate float, int, boolean signals every given sensor intervals, and send it via socket. The datatypes and the names and signal intervals of sensors should be extendable later.
+
+The MTS is the key software with GUI for showing the real-time data transferred from the MUI via socket. The GUI must be customizable and extendable in the future. The MTS is supposed to be composed of multiple CSU(Computer Software Units).
+
+Structure-wise, the CSU is divided to 3 sections.
+
+1. GUI
+1-1. Initial Screen CSU: Titles, Logo and selection of mode
+1-2. Settings Screen CSU: Changing settings of GUI, MUI connection address, file save ocation
+1-3. Checking Screen CSU: Checking data connection to MUI, selection of sensors to check, changing checklist and checklist goals(acceptable sensor range), visualization of sensor location in missile
+1-4. Monitoring Screen CSU: Monitoring data input from single or multiple sensors in numbers or graph
+1-5. Simulation Screen CSU: Test launching a missile by giving launch signal and terrain data to teh MUI and getting feedback from the MUI to simulate missile location in 3D on map
+1-6. Report Screen CSU: Showing test result(Success/Failure) based on checklist, and the option to print it as pdf.
+
+
+2. Control
+2-1. Checklist Loading CSU: Loads checklist with sensors to check and acceptable range from saved file.
+2-2. Checklist Managing CSU: Enables checklist editing and reordering. 
+2-3. Checklist Interpreting CSU: Interprets checklist results, and summarizes what failed or succeeded.
+2-4. Simulation Terrain CSU: Generates 3D terrain based on saved map.
+2-5. Simulation Launch CSU: Sends launch signal to launch MUI.
+2-6. Simulation Feedback CSU: Based on sensor data from launched MUI(ex: thrust, headed direction), generates current physical properties of the missile(position, velocity, acceleration)
+2-7. Report CSU: Generates report to be shown on Report Screen GUI, and saves all the logs in the process.
+
+3. Data
+3-1. Communications CSU: sends data and receives data from given variable address of the MUI(same PC by default), via socket
+3-2. DB CSU: Manages save location and content of all given data other than the sensor data(simulation terrain, checklist, MUI IP, etc.)
+3-3. Log CSU: Saves all data input output interactions between MTS and MUI in log file.
+
+I need you to come up with the basic skeleton for the MTS and MUI.
+
+Keep in mind that the MTS should have clean UI based on qtvscodestyle.
+
+Give me the required instructions in detailed steps, and ask my progress before proceeding to the next required step.
