@@ -1,0 +1,45 @@
+{
+  "sun": {
+    "azimuth_deg": 35.0,
+    "elevation_deg": 30.0,
+    "intensity": 2.0
+  },
+  "rocket": {
+    "dry_mass": 80.0,
+    "propellant_mass": 120.0,
+    "Cd": 0.45,
+    "A_ref": 0.07,
+    "rho_air": 1.225,
+    "g": 9.81,
+    "thrust_curve": [[0, 5000], [10, 4900], [20, 4200], [60, 2200], [70, 800], [80, 0]],
+    "launch_azimuth_deg": 0,
+    "launch_elevation_deg": 90.0,
+    "initial_pos": [0.0, 0.1, 0.0],
+    "thrust_aligns_with_velocity": true
+  },
+  "camera": {
+    "distance": 14.0,
+    "min_distance": 4.0,
+    "max_distance": 250.0,
+    "fov_deg": 60.0
+  },
+  "ground": {
+    "tile_size": 60.0,
+    "color_ocean": [0.1, 0.3, 0.7],
+    "color_land": [0.0, 0.6, 0.0],
+    "heightmap_path": "assets/0811.tif",
+    "heightmap_vertical_scale": 2.0,
+    "heightmap_downsample_to": 512
+  },
+  "model": {
+    "path": "assets/rocket.obj",
+    "scale": 0.1,
+    "forward_axis": "Y",
+    "pre_rotate_deg": [0,0,0],
+    "length_estimate_m": 10.0,
+    "engine_drop_m": 1.0
+  },
+  "graphics": {
+    "msaa": true
+  }
+}
