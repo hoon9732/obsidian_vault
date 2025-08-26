@@ -3,3 +3,198 @@ Everything you previously implemented works fine. Here are my new requirements:
 2. I need RCS controlling to show "contrail" effects, 4 white smoke tails forming to the opposite direction of the rocket's current velocity(unlike thrust flame, but similar effects of white color) The tail position should start from the 4 fins of the missile(which has the center of 4 points at the center of the engine flame), so it better be adjustable in height and rotation(in terms of roll). The contrail effects must be fixed to the missile's roll(if the missile rolls, the trails follow)
 3. Make RCS control affect missile roll, so that controlling yaw slightly starts acceleration of a roll in one direction, and slowly falls back to 0 roll speed(simulating friction)
 4. Tweak collision so that rocket stops when it reaches ocean or heighmap surface
+
+"rocket": {
+  "...": 0,
+  "manual_yaw_rate_deg_s": 20.0,
+  "manual_pitch_rate_deg_s": 20.0,
+  "manual_rate_accel_deg_s2": 120.0,   // how fast rates ramp to target
+  "roll_couple_deg_s2": 15.0,          // yaw input → roll acceleration
+  "roll_damping_per_s": 1.5            // roll rate decays per second
+},
+"model": {
+  "...": 0,
+  "target_length_m": 5.0,
+  "engine_axial_offset_m": 0.0,
+  "fins_radius_m": 0.25,               // fin ring radius (meters)
+  "fins_axial_offset_m": 0.15,         // forward from engine center (+forward)
+  "fins_roll_deg": 0.0,                // rotate the 4 fin positions around body
+  "contrail_length_m": 2.0,
+  "contrail_radius_m": 0.05,
+  "contrail_alpha": 0.38,
+  "contrail_min_speed_mps": 1.0,
+  "contrail_only_when_rcs": true
+}
+
+
+
+
+@dataclass
+class RocketConfig:
+    ...
+    manual_yaw_rate_deg_s: float = 20.0
+    manual_pitch_rate_deg_s: float = 20.0
+    manual_rate_accel_deg_s2: float = 120.0
+    roll_couple_deg_s2: float = 15.0
+    roll_damping_per_s: float = 1.5
+
+@dataclass
+class ModelConfig:
+    ...
+    target_length_m: float = 0.0
+    engine_axial_offset_m: float = 0.0
+    fins_radius_m: float = 0.25
+    fins_axial_offset_m: float = 0.15
+    fins_roll_deg: float = 0.0
+    contrail_length_m: float = 2.0
+    contrail_radius_m: float = 0.05
+    contrail_alpha: float = 0.38
+    contrail_min_speed_mps: float = 1.0
+    contrail_only_when_rcs: bool = True
+
+
+
+
+g_model_uniform_scale = 1.0     # already present if you used the scale patch
+g_roll_rate = 0.0               # NEW: roll angular rate (rad/s)
+
+
+
+
+# --- Smooth wing-like manual steering with acceleration limits ---
+rc = g_cfg.rocket
+
+# inputs: -1, 0, +1
+u_yaw   = (1 if g_ctrl_right else 0) - (1 if g_ctrl_left else 0)
+u_pitch = (1 if g_ctrl_up    else 0) - (1 if g_ctrl_down else 0)
+
+# target rates (rad/s)
+yaw_rate_target   = deg2rad(max(0.0, rc.manual_yaw_rate_deg_s))   * u_yaw
+pitch_rate_target = deg2rad(max(0.0, rc.manual_pitch_rate_deg_s)) * u_pitch
+
+# accelerate current rates toward targets (rad/s^2 clamp)
+acc_max = deg2rad(max(1.0, rc.manual_rate_accel_deg_s2))
+def approach(cur, target):
+    delta = target - cur
+    step = acc_max * dt
+    if   delta >  step: cur += step
+    elif delta < -step: cur -= step
+    else:               cur  = target
+    return cur
+
+g_yaw_rate   = approach(g_yaw_rate,   yaw_rate_target)
+g_pitch_rate = approach(g_pitch_rate, pitch_rate_target)
+
+# integrate angles
+g_yaw   += g_yaw_rate * dt
+g_pitch += g_pitch_rate * dt
+g_pitch  = clamp(g_pitch, deg2rad(-89.0), deg2rad(89.0))
+
+# --- Yaw→Roll coupling with damping (friction-like) ---
+roll_accel = deg2rad(rc.roll_couple_deg_s2) * u_yaw
+g_roll_rate += roll_accel * dt
+g_roll_rate *= max(0.0, 1.0 - rc.roll_damping_per_s * dt)  # exponential decay
+g_roll      += g_roll_rate * dt
+# wrap roll to [-pi, pi] for neatness
+if g_roll > math.pi:     g_roll -= 2.0 * math.pi
+elif g_roll < -math.pi:  g_roll += 2.0 * math.pi
+
+
+
+
+# Surface collision: stop instantly at ocean or terrain
+ground_y = max(0.0, terrain_height_at(g_pos[0], g_pos[2]))
+if g_pos[1] <= ground_y:
+    g_pos[1] = ground_y
+    g_vel[:] = 0.0
+    g_acc[:] = 0.0
+    # optional: damp angular motion on impact
+    g_yaw_rate *= 0.2; g_pitch_rate *= 0.2; g_roll_rate *= 0.2
+
+
+
+
+# roll around forward axis so visuals (and contrails) follow g_roll
+if g_cfg.model.forward_axis.upper() == "Z":
+    glRotatef(rad2deg(g_roll), 0, 0, 1)
+else:  # "Y"
+    glRotatef(rad2deg(g_roll), 0, 1, 0)
+
+
+
+
+def draw_contrail(dir_local: np.ndarray, length=1.5, radius=0.04, alpha=0.38):
+    # White, translucent, tapered tube pointing along dir_local
+    d = dir_local.astype(np.float32)
+    n = np.linalg.norm(d) + 1e-9
+    d /= n
+    src = np.array([0,0,-1], np.float32)
+    ang, axis = axis_angle_from_to(src, d)
+
+    glPushMatrix()
+    glRotatef(rad2deg(ang), axis[0], axis[1], axis[2])
+
+    glDisable(GL_LIGHTING)
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glDepthMask(False)
+
+    seg = 12
+    glBegin(GL_TRIANGLE_STRIP)
+    for i in range(seg + 1):
+        a = 2.0 * math.pi * i / seg
+        nx = math.cos(a) * radius
+        ny = math.sin(a) * radius
+        glColor4f(1.0, 1.0, 1.0, alpha); glVertex3f(nx, ny, -0.02)
+        glColor4f(1.0, 1.0, 1.0, 0.0);   glVertex3f(nx * 0.5, ny * 0.5, -length)
+    glEnd()
+
+    glDepthMask(True)
+    glDisable(GL_BLEND)
+    glEnable(GL_LIGHTING)
+    glPopMatrix()
+
+
+
+
+# ---- RCS contrails (show when commanding) ----
+any_ctrl = (g_ctrl_left or g_ctrl_right or g_ctrl_up or g_ctrl_down)
+speed = float(np.linalg.norm(g_vel))
+if (not g_cfg.model.contrail_only_when_rcs) or (any_ctrl and speed >= g_cfg.model.contrail_min_speed_mps):
+    # direction opposite current velocity (fallback to -forward if nearly zero)
+    body_forward = body_forward_from_angles(g_yaw, g_pitch)
+    dir_world = (-g_vel / (speed + 1e-9)) if speed > 0.1 else (-body_forward)
+
+    # center point: engine center, plus adjustable forward offset to fin ring
+    drop = float(g_cfg.model.engine_drop_m)
+    ax   = float(g_cfg.model.engine_axial_offset_m)
+    f_ax = float(g_cfg.model.fins_axial_offset_m)
+    if g_cfg.model.forward_axis.upper() == "Z":
+        glPushMatrix()
+        glTranslatef(0.0, -drop, -ax)   # engine center (local down and aft)
+        glTranslatef(0.0, 0.0, +f_ax)   # move toward nose along +Z
+        # four fins around +Z axis
+        r = float(g_cfg.model.fins_radius_m)
+        base_deg = float(g_cfg.model.fins_roll_deg)
+        for k in (0, 90, 180, 270):
+            a = deg2rad(base_deg + k)
+            x = r * math.cos(a); y = r * math.sin(a); z = 0.0
+            glPushMatrix(); glTranslatef(x, y, z)
+            # length scales slightly with speed
+            L = g_cfg.model.contrail_length_m * (0.5 + 0.5 * min(1.0, speed / 80.0))
+            draw_contrail(dir_world, length=L, radius=g_cfg.model.contrail_radius_m, alpha=g_cfg.model.contrail_alpha)
+            glPopMatrix()
+        glPopMatrix()
+    else:  # forward +Y
+        glPushMatrix()
+        glTranslatef(0.0, -(drop + ax), 0.0)  # engine center (local down and aft)
+        glTranslatef(0.0, +f_ax, 0.0)         # move toward nose along +Y
+        r = float(g_cfg.model.fins_radius_m)
+        base_deg = float(g_cfg.model.fins_roll_deg)
+        for k in (0, 90, 180, 270):
+            a = deg2rad(base_deg + k)
+            x = r * math.cos(a); z = r * math.sin(a); y = 0.0
+            glPushMatrix(); glTranslatef(x, y, z)
+            L = g_cfg.model.contrail_length_m * (0.5 + 0.5 * min(1.0, speed / 80.0))
+            draw_contrail(dir_world, length=L, radius=g_cfg.model.contrail_radius_m, alpha=g_cfg.model.contrail_alpha)
+            glPopMatrix()
+        glPopMatrix()
