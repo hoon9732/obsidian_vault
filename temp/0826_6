@@ -1,0 +1,119 @@
+def draw_endless_ocean():
+    """Tiles an ocean plane at y=0 under everything, independent of grids/heightmap.
+       Uses state isolation so rocket/materials are unaffected."""
+    tsize = float(g_cfg.ground.tile_size)  # e.g., 50 m tiles
+    # cover more area as the camera backs away; clamp to keep it reasonable
+    # (you can also just use a constant like half_tiles=80 if you prefer)
+    span = int(max(20, min(120, g_cam_dist / 5.0)))  # tiles radius
+    # anchor tiling to world so it doesn't 'swim'
+    ox = math.floor(g_pos[0] / tsize) * tsize
+    oz = math.floor(g_pos[2] / tsize) * tsize
+
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT)
+    glDisable(GL_LIGHTING)  # plain color fill
+    glColor3f(0.02, 0.06, 0.20)
+
+    for i in range(-span, span + 1):
+        for j in range(-span, span + 1):
+            x0 = ox + i * tsize; z0 = oz + j * tsize
+            x1 = x0 + tsize;     z1 = z0 + tsize
+            glBegin(GL_QUADS)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x1, 0.0, z0)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x0, 0.0, z1)
+            glEnd()
+
+    glPopAttrib()  # restores lighting, blend, color, etc.
+
+
+
+
+@dataclass
+class GroundConfig:
+    tile_size: float = 50.0
+    color_ocean: Tuple[float,float,float] = (0.1,0.3,0.7)
+    color_land:  Tuple[float,float,float] = (0.0,0.65,0.0)
+    heightmap_path: str = ""
+    heightmap_vertical_scale: float = 0.02
+    heightmap_downsample_to: int = 256
+    heightmap_meters_per_pixel: float = 2.0         # legacy, used if *_x/_z absent
+    heightmap_meters_per_pixel_x: Optional[float] = None  # NEW
+    heightmap_meters_per_pixel_z: Optional[float] = None  # NEW
+    heightmap_world_offset: Tuple[float,float] = (0.0, 0.0)
+    heightmap_sea_level: Optional[float] = None
+    heightmap_land_percentile: float = 55.0
+
+
+
+
+"ground": {
+  "heightmap_path": "assets/bichido_1.tif",
+  "heightmap_meters_per_pixel": 1.0,
+  "heightmap_meters_per_pixel_x": 1.0,
+  "heightmap_meters_per_pixel_z": 1.0,
+  ...
+}
+
+
+
+
+
+g_hm_scale_x = 1.0
+g_hm_scale_z = 1.0
+
+
+
+
+# choose per-axis meters/px, fallback to legacy scalar if new ones not provided
+sx = getattr(ground_cfg, "heightmap_meters_per_pixel_x", None)
+sz = getattr(ground_cfg, "heightmap_meters_per_pixel_z", None)
+scalar = float(getattr(ground_cfg, "heightmap_meters_per_pixel", 2.0))
+g_hm_scale_x = float(sx if sx is not None else scalar)
+g_hm_scale_z = float(sz if sz is not None else scalar)
+g_hm_z_scale = max(1e-5, float(ground_cfg.heightmap_vertical_scale))
+g_hm_offset = tuple(getattr(ground_cfg, "heightmap_world_offset", (0.0, 0.0)))
+g_hm_size   = (H, W)
+g_hm_img01  = img01
+
+
+
+
+wx  = (x   - W/2) * g_hm_scale_x + g_hm_offset[0]
+wz  = (y   - H/2) * g_hm_scale_z + g_hm_offset[1]
+wx1 = (x+1 - W/2) * g_hm_scale_x + g_hm_offset[0]
+wz1 = (y+1 - H/2) * g_hm_scale_z + g_hm_offset[1]
+
+
+
+
+def terrain_height_at(x: float, z: float) -> float:
+    if not g_hm_present or g_hm_img01 is None: return 0.0
+    H, W = g_hm_size
+    px = int(round((x - g_hm_offset[0]) / (g_hm_scale_x + 1e-9) + W/2))
+    py = int(round((z - g_hm_offset[1]) / (g_hm_scale_z + 1e-9) + H/2))
+    px = max(0, min(W-1, px)); py = max(0, min(H-1, py))
+    return float(g_hm_img01[py, px] * g_hm_z_scale + 0.01)
+
+
+
+
+x0 = (-W/2) * g_hm_scale_x + g_hm_offset[0]
+x1 = ( W/2) * g_hm_scale_x + g_hm_offset[0]
+z0 = (-H/2) * g_hm_scale_z + g_hm_offset[1]
+z1 = ( H/2) * g_hm_scale_z + g_hm_offset[1]
+
+
+
+
+px = int(round((xw - g_hm_offset[0]) / (g_hm_scale_x + 1e-9) + W/2))
+pz = int(round((zw - g_hm_offset[1]) / (g_hm_scale_z + 1e-9) + H/2))
+
+
+
+
+sample_step = max(min(g_hm_scale_x, g_hm_scale_z), sp / 10.0)
+
+
+
+
