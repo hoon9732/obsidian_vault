@@ -1,0 +1,178 @@
+# --- grids ---
+g_show_grid = True
+g_grid_dl_plane = None
+g_grid_dl_drape = None
+
+
+
+
+@dataclass
+class GraphicsConfig:
+    msaa: bool = True
+    fog_enabled: bool = True
+    fog_density: float = 0.00015
+    grid_spacing_m: float = 100.0        # 100 m spacing
+    grid_drape_on_land: bool = True      # build draped-on-terrain grid
+
+
+
+
+"graphics": {
+  "msaa": True, "fog_enabled": true, "fog_density": 0.00015,
+  "grid_spacing_m": 100.0, "grid_drape_on_land": true
+}
+
+
+
+
+g_hm_land = None        # np.bool array same size as g_hm_img01 (set at heightmap build)
+g_hm_land_thr01 = 0.55  # 0..1 threshold we used to separate land/water
+
+
+
+
+# Compute a land mask on normalized heights (so we can drape grid only on land)
+g_hm_land_thr01 = float(np.percentile(img01.ravel(), float(getattr(ground_cfg, "heightmap_land_percentile", 55.0))))
+g_hm_land = (img01 > g_hm_land_thr01)
+
+
+
+
+def rebuild_grid_display_lists():
+    global g_grid_dl_plane, g_grid_dl_drape
+    # clear old
+    if g_grid_dl_plane:
+        try: glDeleteLists(g_grid_dl_plane, 1)
+        except Exception: pass
+    if g_grid_dl_drape:
+        try: glDeleteLists(g_grid_dl_drape, 1)
+        except Exception: pass
+    g_grid_dl_plane = None
+    g_grid_dl_drape = None
+
+    if not g_hm_present or g_hm_img01 is None:
+        return
+
+    H, W = g_hm_size
+    sp = float(getattr(g_cfg.graphics, "grid_spacing_m", 100.0))
+    x0 = (-W/2) * g_hm_scale + g_hm_offset[0]
+    x1 = ( W/2) * g_hm_scale + g_hm_offset[0]
+    z0 = (-H/2) * g_hm_scale + g_hm_offset[1]
+    z1 = ( H/2) * g_hm_scale + g_hm_offset[1]
+
+    # --- PLANE GRID over ocean (y = 0.05). Depth test ON so island hides it. ---
+    g_grid_dl_plane = glGenLists(1)
+    glNewList(g_grid_dl_plane, GL_COMPILE)
+    glBegin(GL_LINES)
+    # vertical lines (constant X)
+    x_start = math.ceil(x0 / sp) * sp
+    x = x_start
+    while x <= x1 + 1e-6:
+        glVertex3f(x, 0.05, z0); glVertex3f(x, 0.05, z1)
+        x += sp
+    # horizontal lines (constant Z)
+    z_start = math.ceil(z0 / sp) * sp
+    z = z_start
+    while z <= z1 + 1e-6:
+        glVertex3f(x0, 0.05, z); glVertex3f(x1, 0.05, z)
+        z += sp
+    glEnd()
+    glEndList()
+
+    # --- DRAPED GRID on island (optional; prebuilt & fast at runtime) ---
+    if getattr(g_cfg.graphics, "grid_drape_on_land", True):
+        g_grid_dl_drape = glGenLists(1)
+        glNewList(g_grid_dl_drape, GL_COMPILE)
+        sample_step = max(g_hm_scale, sp / 10.0)  # ~10 samples per cell
+        # helper to sample land/height
+        def samp(xw, zw):
+            # map world->index
+            H, W = g_hm_size
+            px = int(round((xw - g_hm_offset[0]) / (g_hm_scale + 1e-9) + W/2))
+            pz = int(round((zw - g_hm_offset[1]) / (g_hm_scale + 1e-9) + H/2))
+            px = max(0, min(W-1, px)); pz = max(0, min(H-1, pz))
+            h = float(g_hm_img01[pz, px]) * g_hm_z_scale
+            is_land = bool(g_hm_land[pz, px])
+            return h, is_land
+
+        # vertical drapes (constant X)
+        x = x_start
+        while x <= x1 + 1e-6:
+            in_seg = False
+            z = z0
+            while z <= z1 + 1e-6:
+                h, land = samp(x, z)
+                if land and not in_seg:
+                    glBegin(GL_LINE_STRIP); in_seg = True
+                if land:
+                    glVertex3f(x, h + 0.02, z)  # lift slightly to avoid z-fight
+                elif in_seg:
+                    glEnd(); in_seg = False
+                z += sample_step
+            if in_seg: glEnd()
+            x += sp
+
+        # horizontal drapes (constant Z)
+        z = z_start
+        while z <= z1 + 1e-6:
+            in_seg = False
+            x = x0
+            while x <= x1 + 1e-6:
+                h, land = samp(x, z)
+                if land and not in_seg:
+                    glBegin(GL_LINE_STRIP); in_seg = True
+                if land:
+                    glVertex3f(x, h + 0.02, z)
+                elif in_seg:
+                    glEnd(); in_seg = False
+                x += sample_step
+            if in_seg: glEnd()
+            z += sp
+
+        glEndList()
+
+
+
+
+def draw_grids():
+    if not g_show_grid: return
+    if not g_hm_present: return
+    glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glDisable(GL_LIGHTING)
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glLineWidth(1.0)
+
+    # Plane grid over ocean: light lines, depth test ON so island masks them
+    if g_grid_dl_plane:
+        glColor4f(1.0, 1.0, 1.0, 0.18)
+        glEnable(GL_DEPTH_TEST)
+        glCallList(g_grid_dl_plane)
+
+    # Draped grid on land: slightly darker lines, depth test ON (sits on mesh)
+    if g_grid_dl_drape:
+        glColor4f(0.85, 0.85, 0.85, 0.22)
+        glEnable(GL_DEPTH_TEST)
+        glCallList(g_grid_dl_drape)
+
+    glPopAttrib()
+
+
+
+
+rebuild_grid_display_lists()
+
+
+
+
+
+draw_endless_ocean()
+draw_heightmap()
+draw_grids()        # <- add this
+draw_missile()
+
+
+
+
+elif k in ('g','G'):
+    global g_show_grid
+    g_show_grid = not g_show_grid
