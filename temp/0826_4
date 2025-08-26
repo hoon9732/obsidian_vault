@@ -1,0 +1,122 @@
+def try_build_heightmap_display_list(ground_cfg: GroundConfig) -> Optional[int]:
+    # Geometry-only DL: baked vertex colors, no GL state changes here.
+    # State isolation will happen in draw_heightmap().
+    import math
+    global g_hm_present, g_hm_size, g_hm_scale, g_hm_z_scale, g_hm_img01, g_hm_offset
+
+    path = resolve_path(ground_cfg.heightmap_path)
+    if not path or not os.path.isfile(path) or not _LOADED_MPL:
+        g_hm_present = False
+        g_hm_img01 = None
+        return None
+
+    try:
+        img = mpl_image.imread(path)
+        if img.ndim == 3:
+            img = img[..., 0]
+        Hf, Wf = img.shape
+
+        # Resolution control: set heightmap_downsample_to in config.
+        #  - If <=0: use full resolution (no cap).
+        #  - Else: downsample to ~target on the longer dimension.
+        target = int(getattr(ground_cfg, "heightmap_downsample_to", 256))
+        if target <= 0:
+            sh = 1
+            sw = 1
+        else:
+            sh = max(1, math.ceil(Hf / target))
+            sw = max(1, math.ceil(Wf / target))
+
+        raw = img[::sh, ::sw].astype(np.float32)
+        H, W = raw.shape
+
+        # Normalize to 0..1
+        mn, mx = float(np.nanmin(raw)), float(np.nanmax(raw))
+        img01 = np.zeros_like(raw, dtype=np.float32) if mx - mn < 1e-9 else (raw - mn) / (mx - mn)
+
+        # Land mask: fixed sea level or percentile
+        if getattr(ground_cfg, "heightmap_sea_level", None) is not None:
+            land = (raw > float(ground_cfg.heightmap_sea_level))
+        else:
+            thr = float(np.percentile(raw, float(getattr(ground_cfg, "heightmap_land_percentile", 55.0))))
+            land = (raw > thr)
+
+        # Store for sampling
+        g_hm_img01 = img01
+        g_hm_size = (H, W)
+        g_hm_scale = float(getattr(ground_cfg, "heightmap_meters_per_pixel", 2.0))
+        g_hm_z_scale = max(1e-5, float(ground_cfg.heightmap_vertical_scale))
+        g_hm_offset = tuple(getattr(ground_cfg, "heightmap_world_offset", (0.0, 0.0)))
+
+        # Heights (meters) and baked colors (higher = lighter)
+        hz = img01 * g_hm_z_scale
+
+        W_DEEP = (0.02, 0.06, 0.20)
+        W_SHAL = (0.12, 0.45, 0.70)
+        L_LOW  = (0.05, 0.40, 0.10)
+        L_HIGH = (0.90, 0.97, 0.86)
+
+        def lerp(a,b,t): return (a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t)
+        def color_at(ix, iy):
+            h = float(img01[iy, ix])
+            return lerp(L_LOW, L_HIGH, h) if land[iy, ix] else lerp(W_DEEP, W_SHAL, h)
+
+        dl = glGenLists(1)
+        glNewList(dl, GL_COMPILE)
+
+        # Geometry only; no lighting state here
+        glBegin(GL_TRIANGLES)
+        for y in range(H - 1):
+            for x in range(W - 1):
+                wx  = (x   - W/2) * g_hm_scale + g_hm_offset[0]
+                wz  = (y   - H/2) * g_hm_scale + g_hm_offset[1]
+                wx1 = (x+1 - W/2) * g_hm_scale + g_hm_offset[0]
+                wz1 = (y+1 - H/2) * g_hm_scale + g_hm_offset[1]
+
+                # tiny bias to avoid z-fight with ocean plane
+                h00 = hz[y, x]       + 0.01
+                h10 = hz[y, x+1]     + 0.01
+                h01 = hz[y+1, x]     + 0.01
+                h11 = hz[y+1, x+1]   + 0.01
+
+                c00 = color_at(x,   y)
+                c10 = color_at(x+1, y)
+                c01 = color_at(x,   y+1)
+                c11 = color_at(x+1, y+1)
+
+                glColor3f(*c00); glVertex3f(wx,  h00, wz)
+                glColor3f(*c10); glVertex3f(wx1, h10, wz)
+                glColor3f(*c01); glVertex3f(wx,  h01, wz1)
+
+                glColor3f(*c10); glVertex3f(wx1, h10, wz)
+                glColor3f(*c11); glVertex3f(wx1, h11, wz1)
+                glColor3f(*c01); glVertex3f(wx,  h01, wz1)
+        glEnd()
+
+        glEndList()
+
+        g_hm_present = True
+        print(f"[heightmap] loaded '{path}' -> {H}x{W} px, mpp={g_hm_scale}, zscale={g_hm_z_scale}")
+        return dl
+
+    except Exception as e:
+        print("[heightmap] failed:", e)
+        g_hm_present = False
+        g_hm_img01 = None
+        return None
+
+
+
+
+def draw_heightmap():
+    if not (g_heightmap_dl and g_hm_present):
+        return
+    # Isolate GL state so the terrain can't leave lighting/color-material in a bad state
+    glPushAttrib(GL_ENABLE_BIT | GL_LIGHTING_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT)
+    glDisable(GL_LIGHTING)         # show baked colors 1:1
+    glDisable(GL_COLOR_MATERIAL)   # don't let vertex color bleed into later draws
+    was_cull = glIsEnabled(GL_CULL_FACE)
+    if was_cull: glDisable(GL_CULL_FACE)  # both sides visible from above/below
+    glCallList(g_heightmap_dl)
+    if was_cull: glEnable(GL_CULL_FACE)
+    glPopAttrib()
