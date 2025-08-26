@@ -1,0 +1,164 @@
+def try_build_heightmap_display_list(ground_cfg: GroundConfig) -> Optional[int]:
+    import math
+    global g_hm_present, g_hm_size, g_hm_scale, g_hm_z_scale, g_hm_img01, g_hm_offset
+    path = resolve_path(ground_cfg.heightmap_path)
+    if not path or not os.path.isfile(path) or not _LOADED_MPL:
+        g_hm_present = False; g_hm_img01 = None; return None
+
+    try:
+        img = mpl_image.imread(path)
+        if img.ndim == 3: img = img[..., 0]
+        Hf, Wf = img.shape
+
+        # ----- resolution control (safe clamp to avoid stutter/grey state) -----
+        user_target = int(getattr(ground_cfg, "heightmap_downsample_to", 256))
+        MAX_SAFE = 1024  # hard cap: your GPU/driver stays smooth & correct up to this
+        if user_target <= 0:
+            # full-res requested -> clamp to MAX_SAFE while preserving aspect
+            sh = max(1, math.ceil(Hf / MAX_SAFE)); sw = max(1, math.ceil(Wf / MAX_SAFE))
+            raw = img[::sh, ::sw].astype(np.float32)
+        else:
+            tgt = min(MAX_SAFE, max(16, user_target))
+            sh = max(1, Hf // tgt); sw = max(1, Wf // tgt)
+            raw = img[::sh, ::sw].astype(np.float32)
+
+        H, W = raw.shape
+
+        # Normalize to 0..1
+        mn, mx = float(np.nanmin(raw)), float(np.nanmax(raw))
+        img01 = np.zeros_like(raw, dtype=np.float32) if mx - mn < 1e-9 else (raw - mn) / (mx - mn)
+
+        # Land mask: percentile or fixed level
+        if getattr(ground_cfg, "heightmap_sea_level", None) is not None:
+            land = (raw > float(ground_cfg.heightmap_sea_level))
+        else:
+            thr = float(np.percentile(raw, float(getattr(ground_cfg, "heightmap_land_percentile", 55.0))))
+            land = (raw > thr)
+
+        # Store for sampling
+        g_hm_img01 = img01
+        g_hm_size = (H, W)
+        g_hm_scale = float(getattr(ground_cfg, "heightmap_meters_per_pixel", 2.0))
+        g_hm_z_scale = max(1e-5, float(ground_cfg.heightmap_vertical_scale))
+        g_hm_offset = tuple(getattr(ground_cfg, "heightmap_world_offset", (0.0, 0.0)))
+
+        # Heights used for normals
+        hz = img01 * g_hm_z_scale
+
+        def normal_at(ix: int, iy: int) -> Tuple[float, float, float]:
+            x0 = max(0, ix-1); x1 = min(W-1, ix+1)
+            y0 = max(0, iy-1); y1 = min(H-1, iy+1)
+            dhdx = (hz[iy, x1] - hz[iy, x0]) / ((x1 - x0 + 1e-9) * max(1e-6, g_hm_scale))
+            dhdz = (hz[y1, ix] - hz[y0, ix]) / ((y1 - y0 + 1e-9) * max(1e-6, g_hm_scale))
+            nx, ny, nz = -dhdx, 1.0, -dhdz
+            L = math.sqrt(nx*nx + ny*ny + nz*nz) + 1e-9
+            return (nx/L, ny/L, nz/L)
+
+        def mix(a, b, t): return (a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t)
+        # water: deep→shallow, land: low→high (higher is lighter)
+        W_DEEP = (0.02, 0.06, 0.20)
+        W_SHAL = (0.10, 0.40, 0.60)
+        L_LOW  = (0.03, 0.35, 0.05)
+        L_HIGH = (0.85, 0.95, 0.85)
+
+        def color_at(ix, iy):
+            h = float(img01[iy, ix])  # 0..1 normalized height
+            if land[iy, ix]:
+                return mix(L_LOW, L_HIGH, h)
+            else:
+                return mix(W_DEEP, W_SHAL, h)
+
+        # -------- Build DL (with state guard to avoid leaking GL settings) --------
+        dl = glGenLists(1)
+        glNewList(dl, GL_COMPILE)
+
+        glPushAttrib(GL_ALL_ATTRIB_BITS)
+        was_cull = glIsEnabled(GL_CULL_FACE)
+        if was_cull: glDisable(GL_CULL_FACE)
+
+        glEnable(GL_LIGHTING)
+        glEnable(GL_COLOR_MATERIAL)  # color drives ambient+diffuse
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, [0.05, 0.05, 0.05, 1.0])
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 6.0)
+
+        glBegin(GL_TRIANGLES)
+        for y in range(H - 1):
+            for x in range(W - 1):
+                wx  = (x   - W/2) * g_hm_scale + g_hm_offset[0]
+                wz  = (y   - H/2) * g_hm_scale + g_hm_offset[1]
+                wx1 = (x+1 - W/2) * g_hm_scale + g_hm_offset[0]
+                wz1 = (y+1 - H/2) * g_hm_scale + g_hm_offset[1]
+
+                h00 = hz[y, x]       + 0.01
+                h10 = hz[y, x+1]     + 0.01
+                h01 = hz[y+1, x]     + 0.01
+                h11 = hz[y+1, x+1]   + 0.01
+
+                n00 = normal_at(x,   y)
+                n10 = normal_at(x+1, y)
+                n01 = normal_at(x,   y+1)
+                n11 = normal_at(x+1, y+1)
+
+                c00 = color_at(x,   y)
+                c10 = color_at(x+1, y)
+                c01 = color_at(x,   y+1)
+                c11 = color_at(x+1, y+1)
+
+                glColor3f(*c00); glNormal3f(*n00); glVertex3f(wx,  h00, wz)
+                glColor3f(*c10); glNormal3f(*n10); glVertex3f(wx1, h10, wz)
+                glColor3f(*c01); glNormal3f(*n01); glVertex3f(wx,  h01, wz1)
+
+                glColor3f(*c10); glNormal3f(*n10); glVertex3f(wx1, h10, wz)
+                glColor3f(*c11); glNormal3f(*n11); glVertex3f(wx1, h11, wz1)
+                glColor3f(*c01); glNormal3f(*n01); glVertex3f(wx,  h01, wz1)
+        glEnd()
+
+        glPopAttrib()  # restore everything (prevents “everything turns grey”)
+        glEndList()
+
+        g_hm_present = True
+        print(f"[heightmap] loaded '{path}' -> {H}x{W} px (clamped≤{MAX_SAFE}), mpp={g_hm_scale}, zscale={g_hm_z_scale}")
+        return dl
+    except Exception as e:
+        print("[heightmap] failed:", e)
+        g_hm_present = False; g_hm_img01 = None
+        return None
+
+
+
+
+def step_sim(dt: float):
+    global g_time, g_pos, g_vel, g_acc, g_yaw, g_pitch, g_yaw_rate, g_pitch_rate
+
+    # NEW: freeze on pad (or wherever initial_pos sets Y) until launch
+    if not g_has_launched or g_aborted:
+        g_vel[:] = 0.0
+        g_acc[:] = 0.0
+        return
+    # ... (rest of your step_sim as-is)
+
+
+
+
+def reset_sim():
+    ...
+    rc = g_cfg.rocket
+    g_pos = np.array(rc.initial_pos, dtype=np.float32)
+
+    # If user sets a positive initial Y, honor it; otherwise snap to ground+clearance
+    if g_pos[1] <= 0.0:
+        if g_hm_present and g_hm_img01 is not None:
+            g_pos[1] = terrain_height_at(g_pos[0], g_pos[2]) + 0.20
+        else:
+            g_pos[1] = 0.20
+    ...
+
+
+
+
+glDisable(GL_LIGHTING)
+
+
+
+
