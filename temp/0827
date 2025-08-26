@@ -1,0 +1,5 @@
+Everything you previously implemented works fine. Here are my new requirements:
+1. make RCS control a little more subtle, by adding acceleration to the yaw and pitch control. Make it take some time to reach full yaw_speed or pitch_speed
+2. I need RCS controlling to show "contrail" effects, 4 white smoke tails forming to the opposite direction of the rocket's current velocity(unlike thrust flame, but similar effects of white color) The tail position should start from the 4 fins of the missile(which has the center of 4 points at the center of the engine flame), so it better be adjustable in height and rotation(in terms of roll). The contrail effects must be fixed to the missile's roll(if the missile rolls, the trails follow)
+3. Make RCS control affect missile roll, so that controlling yaw slightly starts acceleration of a roll in one direction, and slowly falls back to 0 roll speed(simulating friction)
+4. Tweak collision so that rocket stops when it reaches ocean or heighmap surface
