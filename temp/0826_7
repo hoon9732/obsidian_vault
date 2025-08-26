@@ -1,6 +1,220 @@
 Now that the map is robust, I need improvements on the rocket modeling and the corresponding flame effects and RCS control
 
-1. According to the json file, current rocket scale is 0.1, forward_axis = "Y", length_estimate_m = 5.0, engine_drop_m = 1.0
+1. According to the json file, current rocket scale is 0.1, forward_axisdef build_missile_display_list(model_cfg: ModelConfig) -> int:
+    """
+    Builds a display list from the OBJ (or fallback), measures true length along forward axis,
+    and stores tail offset. We will apply an EXTRA uniform scale at draw-time so the final
+    length equals model_cfg.target_length_m (if >0).
+    """
+    global g_model_len_m, g_tail_offset_local, g_model_uniform_scale
+    dl = glGenLists(1)
+    glNewList(dl, GL_COMPILE)
+
+    loaded = False
+    path = resolve_path(model_cfg.path)
+
+    def _emit_mesh(verts: np.ndarray, faces: np.ndarray):
+        norms = _compute_vertex_normals_simple(verts, faces)
+        glEnable(GL_NORMALIZE)
+        glBegin(GL_TRIANGLES)
+        for f in faces:
+            i0,i1,i2 = int(f[0]), int(f[1]), int(f[2])
+            for idx in (i0,i1,i2):
+                n = norms[idx]; v = verts[idx]
+                glNormal3f(float(n[0]), float(n[1]), float(n[2]))
+                glVertex3f(float(v[0]), float(v[1]), float(v[2]))
+        glEnd()
+
+    try:
+        if path and os.path.isfile(path) and _LOADED_TRIMESH:
+            obj = trimesh.load(path, skip_materials=True)
+            mesh = obj.to_mesh() if isinstance(obj, trimesh.Scene) else obj
+            try: mesh.remove_unreferenced_vertices()
+            except: pass
+            try: mesh = mesh.triangulate()
+            except: pass
+
+            # Apply the *authoring-scale* (from JSON) to geometry now
+            try: mesh.apply_scale(model_cfg.scale)
+            except: pass
+
+            verts = np.asarray(mesh.vertices, dtype=np.float32)
+            faces = np.asarray(mesh.faces, dtype=np.int32)
+
+            # Measure bbox along the declared forward axis (post "scale")
+            bbox_min = verts.min(axis=0); bbox_max = verts.max(axis=0)
+            if model_cfg.forward_axis.upper() == "Z":
+                g_model_len_m = float(bbox_max[2] - bbox_min[2])
+                g_tail_offset_local = float(bbox_min[2])   # tail = min Z
+            else:  # "Y"
+                g_model_len_m = float(bbox_max[1] - bbox_min[1])
+                g_tail_offset_local = float(bbox_min[1])   # tail = min Y
+
+            print(f"[model] loaded '{path}' verts={len(verts)} faces={len(faces)} "
+                  f"len~{g_model_len_m:.3f} m tail_off={g_tail_offset_local:.3f}")
+
+            _emit_mesh(verts, faces)
+            loaded = True
+
+        elif path and os.path.isfile(path) and _LOADED_ASSIMP:
+            scene = pyassimp.load(path)
+            all_vs = []
+            for m in scene.meshes:
+                vs = (np.asarray(m.vertices, dtype=np.float32) * model_cfg.scale)
+                fs = np.asarray(m.faces, dtype=np.int32)
+                _emit_mesh(vs, fs)
+                all_vs.append(vs)
+            pyassimp.release(scene)
+
+            if all_vs:
+                V = np.concatenate(all_vs, axis=0)
+                bbox_min = V.min(axis=0); bbox_max = V.max(axis=0)
+                if model_cfg.forward_axis.upper() == "Z":
+                    g_model_len_m = float(bbox_max[2] - bbox_min[2])
+                    g_tail_offset_local = float(bbox_min[2])
+                else:
+                    g_model_len_m = float(bbox_max[1] - bbox_min[1])
+                    g_tail_offset_local = float(bbox_min[1])
+                print(f"[model] loaded '{path}' len~{g_model_len_m:.3f} m tail_off={g_tail_offset_local:.3f}")
+                loaded = True
+
+        if not loaded:
+            print("[model] using fallback primitive (check path/installation)")
+            quad = gluNewQuadric()
+            glPushMatrix()
+            glScalef(model_cfg.scale, model_cfg.scale, model_cfg.scale)
+            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [0.85,0.85,0.9,1.0])
+            glPushMatrix(); glRotatef(90, -1, 0, 0); gluCylinder(quad, 0.2, 0.2, 2.0, 24, 1); glPopMatrix()
+            glPushMatrix(); glTranslatef(0, 0, 2.0); glRotatef(-90, 1, 0, 0); glutSolidCone(0.25, 0.6, 24, 1); glPopMatrix()
+            gluDeleteQuadric(quad)
+            glPopMatrix()
+            g_model_len_m = 2.6
+            g_tail_offset_local = 0.0
+
+    except Exception as e:
+        print("[model] load failed:", e)
+
+    glEndList()
+
+    # Compute EXTRA uniform scale to hit target_length_m (if set)
+    g_model_uniform_scale = 1.0
+    if g_cfg.model.target_length_m > 0.0 and g_model_len_m > 1e-6:
+        g_model_uniform_scale = g_cfg.model.target_length_m / g_model_len_m
+        # keep downstream logic consistent
+        g_cfg.model.length_estimate_m = g_cfg.model.target_length_m
+        print(f"[model] target_length={g_cfg.model.target_length_m:.3f} m -> extra_uniform_scale={g_model_uniform_scale:.5f}")
+
+    return dl
+
+
+
+
+def draw_missile():
+    glPushMatrix()
+
+    # world: move to the tail point
+    glTranslatef(g_pos[0], g_pos[1], g_pos[2])
+
+    # object: shift so the TAIL sits at the origin (account for extra scale!)
+    tail_off_scaled = g_tail_offset_local * g_model_uniform_scale
+    if g_cfg.model.forward_axis.upper() == "Z":
+        glTranslatef(0.0, 0.0, -tail_off_scaled)
+    else:  # "Y"
+        glTranslatef(0.0, -tail_off_scaled, 0.0)
+
+    # asset pre-rotate
+    rx, ry, rz = g_cfg.model.pre_rotate_deg
+    glRotatef(rx, 1, 0, 0); glRotatef(ry, 0, 1, 0); glRotatef(rz, 0, 0, 1)
+
+    # align model forward to body forward
+    model_forward = np.array([0,0,1], np.float32) if g_cfg.model.forward_axis.upper()=="Z" else np.array([0,1,0], np.float32)
+    body_forward  = body_forward_from_angles(g_yaw, g_pitch)
+    ang, axis = axis_angle_from_to(model_forward, body_forward)
+    glRotatef(rad2deg(ang), axis[0], axis[1], axis[2])
+
+    # apply EXTRA uniform scale to achieve target_length_m
+    glScalef(g_model_uniform_scale, g_model_uniform_scale, g_model_uniform_scale)
+
+    # material + geometry
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [0.85,0.85,0.9,1.0])
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, [0.30,0.30,0.30,1.0])
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 32.0)
+    was_cull = glIsEnabled(GL_CULL_FACE)
+    if was_cull: glDisable(GL_CULL_FACE)
+    glCallList(g_missile_dl)
+
+    # main engine plume (only after launch & thrust > 0)
+    if g_has_launched and current_thrust(g_time) > 1.0:
+        drop = float(g_cfg.model.engine_drop_m)
+        ax   = float(g_cfg.model.engine_axial_offset_m)
+        if g_cfg.model.forward_axis.upper()=="Z":
+            # local aft is -Z; move slightly aft by (ax), down by (drop)
+            glPushMatrix()
+            glTranslatef(0.0, -drop, -ax - 0.02)
+            draw_small_flame(np.array([0,0,-1], np.float32),
+                             length=min(6.0, 0.0025*current_thrust(g_time)+0.6),
+                             radius=0.18, alpha=0.85)
+            glPopMatrix()
+        else:  # forward is +Y; local aft is -Y
+            glPushMatrix()
+            glTranslatef(0.0, -(drop + ax + 0.02), 0.0)
+            draw_small_flame(np.array([0,-1,0], np.float32),
+                             length=min(6.0, 0.0025*current_thrust(g_time)+0.6),
+                             radius=0.18, alpha=0.85)
+            glPopMatrix()
+
+    if was_cull: glEnable(GL_CULL_FACE)
+    glPopMatrix()
+
+
+
+
+
+
+
+
+
+
+def cmd_center():
+    global g_cam_yaw, g_cam_pitch, g_cam_dist, g_view_mode_rcs
+    g_view_mode_rcs = False
+    g_cam_yaw = math.pi          # was 0.0; now viewer sits at -Z looking toward origin
+    g_cam_pitch = deg2rad(20.0)
+    g_cam_dist = g_cfg.camera.distance# --- Wing-like manual steering: directly change yaw/pitch while keys held ---
+yaw_speed   = deg2rad(max(1.0, g_cfg.rocket.manual_yaw_rate_deg_s))
+pitch_speed = deg2rad(max(1.0, g_cfg.rocket.manual_pitch_rate_deg_s))
+
+dyaw = (g_ctrl_right - g_ctrl_left) * yaw_speed * dt
+dpit = (g_ctrl_up    - g_ctrl_down) * pitch_speed * dt
+
+g_yaw   += dyaw
+g_pitch += dpit
+g_pitch = clamp(g_pitch, deg2rad(-89.0), deg2rad(89.0))
+
+
+
+
+# --- Wing-like manual steering: directly change yaw/pitch while keys held ---
+yaw_speed   = deg2rad(max(1.0, g_cfg.rocket.manual_yaw_rate_deg_s))
+pitch_speed = deg2rad(max(1.0, g_cfg.rocket.manual_pitch_rate_deg_s))
+
+dyaw = (g_ctrl_right - g_ctrl_left) * yaw_speed * dt
+dpit = (g_ctrl_up    - g_ctrl_down) * pitch_speed * dt
+
+g_yaw   += dyaw
+g_pitch += dpit
+g_pitch = clamp(g_pitch, deg2rad(-89.0), deg2rad(89.0))
+
+
+
+
+[model] loaded 'assets/rocket.obj' len~2.720 m tail_off=-1.320
+[model] target_length=5.000 m -> extra_uniform_scale=1.83824
+
+
+
+
+ = "Y", length_estimate_m = 5.0, engine_drop_m = 1.0
 The code prints current rocket.obj len estimate~2.72m, tail_off=-1.32m.
 However, I need a method to actually find out the rocket modeling's size and scale the rocket to a fixed length "rocket_length" which can be adjusted in json
 and also find a way to adjust the main engine flame location(which is currently a little off)
@@ -8,3 +222,42 @@ and also find a way to adjust the main engine flame location(which is currently 
 and pressing down key rotates the +y axis head of the rocket towards viewer(rocket inclines to +z axis) and flame tail is formed upward(+y axis), and those minor flame controls for yaw and pitch control is way far from the rocket. Pressing up key does the opposite.
 The rocket pitch seems to be locked between -89 and +89, which is okay but i want the +0 pitch direction to be away from the viewer, not towards the viewer.
 3. Remove flame effects for yaw, pitch control and make the controls to be subtle, simulating control by rocket wings(do not do actual calculations, simply gradually change the yaw, pitch angle by time)
+
+
+"target_length_m": 5.0,          // the exact visual length you want
+"engine_axial_offset_m": 0.0     // fine-tune: move flame fore/aft along the body
+
+"manual_yaw_rate_deg_s": 20.0,
+"manual_pitch_rate_deg_s": 20.0
+
+
+
+
+@dataclass
+class ModelConfig:
+    path: str = ""
+    scale: float = 1.0
+    forward_axis: str = "Y"
+    pre_rotate_deg: Tuple[float,float,float] = (0.0,0.0,0.0)
+    length_estimate_m: float = 10.0
+    engine_drop_m: float = 0.15
+    target_length_m: float = 0.0           # NEW
+    engine_axial_offset_m: float = 0.0     # NEW (meters along -forward at the tail)
+
+@dataclass
+class RocketConfig:
+    dry_mass: float = 50.0
+    propellant_mass: float = 50.0
+    ...
+    # RCS/wing-like manual control (NEW)
+    manual_yaw_rate_deg_s: float = 20.0
+    manual_pitch_rate_deg_s: float = 20.0
+
+
+
+
+g_model_uniform_scale = 1.0   # extra uniform scale to hit target_length_m
+
+
+
+
