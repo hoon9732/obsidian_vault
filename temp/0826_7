@@ -1,0 +1,10 @@
+Now that the map is robust, I need improvements on the rocket modeling and the corresponding flame effects and RCS control
+
+1. According to the json file, current rocket scale is 0.1, forward_axis = "Y", length_estimate_m = 5.0, engine_drop_m = 1.0
+The code prints current rocket.obj len estimate~2.72m, tail_off=-1.32m.
+However, I need a method to actually find out the rocket modeling's size and scale the rocket to a fixed length "rocket_length" which can be adjusted in json
+and also find a way to adjust the main engine flame location(which is currently a little off)
+2. RCS control is weird. I am not sure how the rocket is controlled now, but the camera starts at blue z axis pointing towards viewer(maybe invert this fictional axis drawing from +z to -z?) and red axis to the right and green axis to the top(they are fine)
+and pressing down key rotates the +y axis head of the rocket towards viewer(rocket inclines to +z axis) and flame tail is formed upward(+y axis), and those minor flame controls for yaw and pitch control is way far from the rocket. Pressing up key does the opposite.
+The rocket pitch seems to be locked between -89 and +89, which is okay but i want the +0 pitch direction to be away from the viewer, not towards the viewer.
+3. Remove flame effects for yaw, pitch control and make the controls to be subtle, simulating control by rocket wings(do not do actual calculations, simply gradually change the yaw, pitch angle by time)
