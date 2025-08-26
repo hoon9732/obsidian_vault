@@ -1,0 +1,139 @@
+def terrain_normal_at(x: float, z: float) -> np.ndarray:
+    if not g_hm_present or g_hm_img01 is None:
+        return np.array([0,1,0], np.float32)
+    H, W = g_hm_size
+    fx = (x - g_hm_offset[0]) / (g_hm_scale + 1e-9) + W/2
+    fz = (z - g_hm_offset[1]) / (g_hm_scale + 1e-9) + H/2
+    ix = max(0, min(W-1, int(round(fx))))
+    iz = max(0, min(H-1, int(round(fz))))
+    def samp(i, j): return float(g_hm_img01[j, i]) * g_hm_z_scale
+    x0, x1 = max(0, ix-1), min(W-1, ix+1)
+    z0, z1 = max(0, iz-1), min(H-1, iz+1)
+    dhdx = (samp(x1, iz) - samp(x0, iz)) / ((x1 - x0 + 1e-9) * max(1e-6, g_hm_scale))
+    dhdz = (samp(ix, z1) - samp(ix, z0)) / ((z1 - z0 + 1e-9) * max(1e-6, g_hm_scale))
+    n = np.array([-dhdx, 1.0, -dhdz], np.float32)
+    n /= (np.linalg.norm(n) + 1e-9)
+    return n
+
+def find_shadow_hit_along_sun(p_world: np.ndarray) -> Optional[np.ndarray]:
+    """Project from p_world along -sun to the terrain; returns hit point or None."""
+    sdir = sun_dir_from_az_el(g_sun_az, g_sun_el)
+    if sdir[1] <= 1e-5:  # sun below horizon
+        return None
+    # march along -sdir in coarse steps
+    step = max(5.0, p_world[1] * 0.1)
+    x, y, z = float(p_world[0]), float(p_world[1]), float(p_world[2])
+    for _ in range(800):
+        ground_y = terrain_height_at(x, z)
+        if y <= ground_y + 0.005:
+            return np.array([x, ground_y, z], np.float32)
+        x -= sdir[0] * step
+        y -= sdir[1] * step
+        z -= sdir[2] * step
+        if y < -10_000.0: break
+    # fallback intersect with ocean plane y=0
+    if sdir[1] > 1e-6:
+        t = (p_world[1] - 0.0) / sdir[1]
+        hit = p_world - sdir * t
+        hit[1] = 0.0
+        return hit.astype(np.float32)
+    return None
+
+def draw_shadow_blob():
+    # Simple soft disc aligned to local terrain plane at the sun-projected hit
+    if not g_has_launched:  # optional: only when flying
+        return
+    hit = find_shadow_hit_along_sun(g_pos)
+    if hit is None: return
+    n = terrain_normal_at(hit[0], hit[2])
+    # Build tangent basis (u,v) on the ground
+    up = np.array([0,1,0], np.float32)
+    u = np.cross(up, n); 
+    if np.linalg.norm(u) < 1e-6: u = np.array([1,0,0], np.float32)
+    u /= (np.linalg.norm(u)+1e-9)
+    v = np.cross(n, u); v /= (np.linalg.norm(v)+1e-9)
+
+    # Size grows slightly with altitude; tweak if you want tighter blob
+    size = 2.0 + 0.01 * max(0.0, g_pos[1])
+    size = min(size, 25.0)
+
+    center = hit + n * 0.03  # lift a hair to avoid Z-fight
+    seg = 28
+
+    glDisable(GL_LIGHTING)
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    # Depth test ON so it hides behind terrain ridges (but lifted 3 cm)
+    glEnable(GL_DEPTH_TEST)
+
+    glBegin(GL_TRIANGLE_FAN)
+    glColor4f(0.0, 0.0, 0.0, 0.35)  # center opaque-ish
+    glVertex3f(center[0], center[1], center[2])
+    for i in range(seg+1):
+        a = 2.0 * math.pi * i / seg
+        edge = center + u * math.cos(a) * size + v * math.sin(a) * size
+        glColor4f(0.0, 0.0, 0.0, 0.0)   # feather to transparent edge
+        glVertex3f(edge[0], edge[1], edge[2])
+    glEnd()
+
+    glDisable(GL_BLEND)
+    glEnable(GL_LIGHTING)
+
+
+
+draw_missile()
+draw_shadow_blob()   # <— add
+draw_world_axes_at_base(length=5.0)
+
+
+
+def draw_endless_ocean():
+    tsize = g_cfg.ground.tile_size
+    # Ocean tiles
+    # make the carpet larger when low, smaller when high; hide above 1km
+    if g_pos[1] > 1000.0:
+        half_tiles = 0  # hide grid + ocean quad if you want (or keep a minimal carpet)
+    else:
+        half_tiles = int(clamp(6 + (1000.0 - g_pos[1]) / 5.0, 12, 150))
+
+    ox = math.floor(g_pos[0] / tsize) * tsize
+    oz = math.floor(g_pos[2] / tsize) * tsize
+
+    # ocean quads (fill) at y=0
+    if half_tiles > 0:
+        glDisable(GL_LIGHTING)
+        glColor3f(0.02, 0.06, 0.20)
+        for i in range(-half_tiles, half_tiles+1):
+            for j in range(-half_tiles, half_tiles+1):
+                x0 = ox + i * tsize; z0 = oz + j * tsize
+                x1 = x0 + tsize;     z1 = z0 + tsize
+                glBegin(GL_QUADS)
+                glVertex3f(x0, 0.0, z0)
+                glVertex3f(x1, 0.0, z0)
+                glVertex3f(x1, 0.0, z1)
+                glVertex3f(x0, 0.0, z1)
+                glEnd()
+
+        # grid lines every 10 m, draw slightly above ocean & without depth to avoid flicker
+        glColor4f(1.0, 1.0, 1.0, 0.10)
+        glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glDisable(GL_DEPTH_TEST)   # draw on top, avoids z-fight with island
+        step = tsize / 5.0
+        N = half_tiles * 5
+        ygrid = 0.05
+        glBegin(GL_LINES)
+        for k in range(-N, N+1):
+            x = ox + k * step
+            glVertex3f(x, ygrid, oz - N*step); glVertex3f(x, ygrid, oz + N*step)
+            z = oz + k * step
+            glVertex3f(ox - N*step, ygrid, z); glVertex3f(ox + N*step, ygrid, z)
+        glEnd()
+        glEnable(GL_DEPTH_TEST)
+        glDisable(GL_BLEND)
+        glEnable(GL_LIGHTING)
+
+
+
+amb = 0.12 * g_sun_int
+dif = 0.9  * g_sun_int
+glLightfv(GL_LIGHT0, GL_AMBIENT,  [amb, amb, amb, 1.0])
+glLightfv(GL_LIGHT0, GL_DIFFUSE,  [dif, dif, dif, 1.0])
