@@ -1,0 +1,127 @@
+def draw_shadow_blob():
+    mode = getattr(g_cfg.graphics, "blob_shadow_mode", "none")
+    if not getattr(g_cfg.graphics, "blob_shadow", False) or mode == "none":
+        return
+
+    # Center of the blob (cheap): vertical projection to terrain/ocean
+    y_ground = terrain_height_at(g_pos[0], g_pos[2])
+    center = np.array([g_pos[0], y_ground + 0.03, g_pos[2]], np.float32)
+
+    # Disc basis — horizontal (you can use terrain normal if you like)
+    n = np.array([0,1,0], np.float32)
+    u = np.array([1,0,0], np.float32)
+    v = np.array([0,0,1], np.float32)
+
+    # Size grows a bit with altitude, clamped
+    size = min(2.0 + 0.01 * max(0.0, g_pos[1]), 20.0)
+
+    # If you choose "march" later, bail out (heavy path removed by default)
+    if mode == "march":
+        # intentionally disabled to avoid stutter
+        return
+
+    seg = 24
+    glDisable(GL_LIGHTING)
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glEnable(GL_DEPTH_TEST)
+
+    glBegin(GL_TRIANGLE_FAN)
+    glColor4f(0.0, 0.0, 0.0, 0.30);  glVertex3f(center[0], center[1], center[2])
+    for i in range(seg+1):
+        a = 2.0 * math.pi * i / seg
+        edge = center + u * math.cos(a) * size + v * math.sin(a) * size
+        glColor4f(0.0, 0.0, 0.0, 0.0)
+        glVertex3f(edge[0], edge[1], edge[2])
+    glEnd()
+
+    glDisable(GL_BLEND)
+    glEnable(GL_LIGHTING)
+
+
+
+draw_missile()
+draw_shadow_blob()   # now does nothing unless enabled in config
+draw_world_axes_at_base(length=5.0)
+
+
+
+def draw_endless_ocean():
+    tsize = g_cfg.ground.tile_size
+    hide_alt = float(getattr(g_cfg.graphics, "grid_hide_alt_m", 1000.0))
+    max_half = int(getattr(g_cfg.graphics, "grid_max_half_tiles", 60))
+
+    # Hide grid/ocean carpet above threshold
+    if g_pos[1] > hide_alt:
+        return
+
+    # Scale with altitude near ground, but cap it hard
+    base_half = 6
+    # grow ~linearly as you get closer to ground
+    grow = int(clamp(base_half + (hide_alt - g_pos[1]) / 10.0, base_half, max_half))
+    half_tiles = grow
+
+    ox = math.floor(g_pos[0] / tsize) * tsize
+    oz = math.floor(g_pos[2] / tsize) * tsize
+
+    # Ocean quads (fill)
+    glDisable(GL_LIGHTING)
+    glColor3f(0.02, 0.06, 0.20)
+    for i in range(-half_tiles, half_tiles+1):
+        for j in range(-half_tiles, half_tiles+1):
+            x0 = ox + i * tsize; z0 = oz + j * tsize
+            x1 = x0 + tsize;     z1 = z0 + tsize
+            glBegin(GL_QUADS)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x1, 0.0, z0)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x0, 0.0, z1)
+            glEnd()
+
+    # Grid lines every 10 m, drawn slightly above and without depth to avoid flicker
+    glColor4f(1.0, 1.0, 1.0, 0.10)
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glDisable(GL_DEPTH_TEST)
+    step = tsize / 5.0
+    N = half_tiles * 5
+    ygrid = 0.05
+    glBegin(GL_LINES)
+    for k in range(-N, N+1):
+        x = ox + k * step
+        glVertex3f(x, ygrid, oz - N*step); glVertex3f(x, ygrid, oz + N*step)
+        z = oz + k * step
+        glVertex3f(ox - N*step, ygrid, z); glVertex3f(ox + N*step, ygrid, z)
+    glEnd()
+    glEnable(GL_DEPTH_TEST)
+    glDisable(GL_BLEND)
+    glEnable(GL_LIGHTING)
+
+
+
+glLightfv(GL_LIGHT0, GL_POSITION, [sdir[0], sdir[1], sdir[2], 0.0])
+
+
+
+"ground": { "heightmap_downsample_to": 0 }
+
+
+
+"ground": { "heightmap_downsample_to": 1024 }
+
+
+
+"graphics": {
+  "msaa": true,
+  "fog_enabled": false,
+  "fog_density": 0.0,
+  "blob_shadow": false,
+  "blob_shadow_mode": "none",
+  "grid_max_half_tiles": 60,
+  "grid_hide_alt_m": 1000.0
+},
+"ground": {
+  "heightmap_downsample_to": 1024
+}
+
+
+
+"graphics": { "blob_shadow": true, "blob_shadow_mode": "vertical" }
