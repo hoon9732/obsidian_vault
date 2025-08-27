@@ -18,3 +18,346 @@ Preexisting sensors_CMI.json example:
 
 3. The data from t=0.00 to the end of the missile simulation(simulation should stop when missile hits ground) should be automatically saved in the logs folder with automatically generate date and time(simlog_YYYYMMDD_##)
 
+
+
+
+Love it — let’s bolt a tiny TCP telemetry server onto the sim, stream exact HUD data every ~10 ms, and log it. Then we’ll show the one-liner to hook your GUI’s button to the sim and how to point the table at these fields.
+
+Below are drop-in patches. I’ve kept them surgical so you can paste them straight into your current modules/missile_sim.py and main.py.
+
+
+---
+
+A) modules/missile_sim.py — add live telemetry + logging
+
+1) Config knobs (add to your JSON)
+
+Under the root (peer to "rocket", "model", "ground", etc.), add:
+
+"telemetry": {
+  "enable": true,
+  "host": "127.0.0.1",
+  "port": 9999,
+  "interval_ms": 10,
+  "log_enable": true,
+  "log_dir": "logs"
+}
+
+2) Dataclass + globals
+
+Near your other dataclasses:
+
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class TelemetryConfig:
+    enable: bool = True
+    host: str = "127.0.0.1"
+    port: int = 9999
+    interval_ms: int = 10
+    log_enable: bool = True
+    log_dir: str = "logs"
+
+In your config loader’s defaults, include "telemetry": {...} (values above).
+Globals (top of file, near others):
+
+import socket, threading, json, time
+from datetime import datetime
+from pathlib import Path
+
+g_tel_thread: Optional[threading.Thread] = None
+g_tel_stop = threading.Event()
+g_sim_active = False               # running phase (from launch to touchdown)
+g_log_file = None
+
+3) Utility: current mass + snapshot payload
+
+Add:
+
+def current_mass() -> float:
+    rc = g_cfg.rocket
+    if not g_has_launched or g_burn_time <= 1e-9:
+        return rc.dry_mass + rc.propellant_mass
+    burn = clamp(g_time / g_burn_time, 0.0, 1.0)
+    return rc.dry_mass + rc.propellant_mass * (1.0 - burn)
+
+def telemetry_snapshot() -> dict:
+    # World-frame telemetry (names chosen to match your table JSON)
+    payload = {
+        "timestamp": datetime.now().isoformat(timespec="milliseconds"),
+        "TIME_S": round(float(g_time), 3),
+
+        "INS_YAW":   round(rad2deg(float(g_yaw)), 3),     # deg
+        "INS_PITCH": round(rad2deg(float(g_pitch)), 3),   # deg
+        "INS_ROLL":  round(rad2deg(float(g_roll)), 3),    # deg
+
+        "POS_X": round(float(g_pos[0]), 3),
+        "POS_Y": round(float(g_pos[1]), 3),
+        "POS_Z": round(float(g_pos[2]), 3),
+
+        "VEL_X": round(float(g_vel[0]), 3),
+        "VEL_Y": round(float(g_vel[1]), 3),
+        "VEL_Z": round(float(g_vel[2]), 3),
+
+        "ACC_X": round(float(g_acc[0]), 3),
+        "ACC_Y": round(float(g_acc[1]), 3),
+        "ACC_Z": round(float(g_acc[2]), 3),
+
+        "ALT": round(float(g_pos[1]), 3),
+        "THRUST_N": round(float(current_thrust(g_time)), 2),
+        "MASS_KG": round(float(current_mass()), 2)
+    }
+    return payload
+
+> If you already use different key names in your GUI JSON, either rename them here or keep these and update the GUI JSON (see section C).
+
+
+
+4) Tiny server+logger thread
+
+Add:
+
+def _open_next_logfile(log_dir: Path) -> Optional[object]:
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d")
+        # simlog_YYYYMMDD_##.jsonl
+        for idx in range(100):
+            name = log_dir / f"simlog_{stamp}_{idx:02d}.jsonl"
+            if not name.exists():
+                return name.open("w", encoding="utf-8")
+    except Exception as e:
+        print("[telemetry] log open failed:", e)
+    return None
+
+def _telemetry_loop():
+    cfg = g_cfg.telemetry
+    interval = max(1, int(cfg.interval_ms)) / 1000.0
+    # server socket
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind((cfg.host, int(cfg.port)))
+        srv.listen(1)
+        srv.setblocking(False)
+        print(f"[telemetry] serving on {cfg.host}:{cfg.port} every {cfg.interval_ms} ms")
+    except Exception as e:
+        print("[telemetry] bind/listen failed:", e)
+        srv.close()
+        return
+
+    # log
+    logf = None
+    if cfg.log_enable:
+        logf = _open_next_logfile((PROJECT_ROOT / cfg.log_dir))
+
+    conn = None
+    next_t = time.perf_counter()
+    try:
+        while not g_tel_stop.is_set():
+            # accept non-blocking
+            if conn is None:
+                try:
+                    conn, addr = srv.accept()
+                    conn.setblocking(False)
+                    print(f"[telemetry] client {addr} connected")
+                except (BlockingIOError, InterruptedError):
+                    pass
+
+            now = time.perf_counter()
+            if now >= next_t:
+                snap = telemetry_snapshot()
+                line = json.dumps(snap, ensure_ascii=False) + "\n"
+                # write log
+                if logf:
+                    try:
+                        logf.write(line)
+                    except Exception:
+                        pass
+                # send to client
+                if conn:
+                    try:
+                        conn.sendall(line.encode("utf-8"))
+                    except Exception:
+                        try: conn.close()
+                        except: pass
+                        conn = None
+                        print("[telemetry] client disconnected")
+                next_t += interval
+                # if sim ended (touchdown), finish after writing last sample
+                if not g_sim_active and g_has_launched:
+                    break
+            else:
+                time.sleep(min(0.002, max(0.0, next_t - now)))
+    finally:
+        try: srv.close()
+        except: pass
+        try:
+            if conn: conn.close()
+        except: pass
+        try:
+            if logf: logf.close()
+        except: pass
+        print("[telemetry] stopped")
+
+def start_telemetry():
+    global g_tel_thread
+    if not getattr(g_cfg, "telemetry", None) or not g_cfg.telemetry.enable:
+        return
+    g_tel_stop.clear()
+    t = threading.Thread(target=_telemetry_loop, daemon=True)
+    t.start()
+    g_tel_thread = t
+
+def stop_telemetry():
+    g_tel_stop.set()
+    if g_tel_thread and g_tel_thread.is_alive():
+        g_tel_thread.join(timeout=1.0)
+
+5) Start/stop and end-of-sim hooks
+
+In your main() (after config load + GL init, before glutMainLoop()), start telemetry:
+
+
+start_telemetry()
+
+In step_sim(dt), when you detect touchdown, also end the sim (and let the telemetry loop exit after the next sample):
+
+
+# ... after integrating g_pos ...
+ground_y = max(0.0, terrain_height_at(g_pos[0], g_pos[2]))
+if g_pos[1] <= ground_y:
+    g_pos[1] = ground_y
+    g_vel[:] = 0.0
+    g_acc[:] = 0.0
+    g_yaw_rate *= 0.2; g_pitch_rate *= 0.2; g_roll_rate *= 0.2
+    # mark end-of-simulation after first touchdown
+    if g_has_launched:
+        # freeze further stepping
+        global g_sim_active
+        g_sim_active = False
+        # optional: also set g_aborted = True
+        g_aborted = True
+        return
+
+When you launch, set g_sim_active = True. In your launch handler (key ‘L’):
+
+
+def cmd_launch():
+    global g_has_launched, g_launch_t, g_sim_active
+    if not g_has_launched:
+        g_has_launched = True
+        g_launch_t = g_time
+        g_sim_active = True
+
+On app exit (if you have a cleanup or after GLUT returns), call stop_telemetry(). If GLUT never returns, it’s fine — the thread is daemon and finishes on process exit.
+
+
+
+---
+
+B) Fix contrails to use world velocity (you asked earlier)
+
+You already added world_dir_to_local(...). In the contrails block inside draw_missile() make sure you compute:
+
+speed = float(np.linalg.norm(g_vel))
+if speed > 0.1:
+    dir_world = - (g_vel / (speed + 1e-9))   # opposite WORLD velocity
+else:
+    _, _, fwdW = body_basis_from_angles(g_yaw, g_pitch, g_roll)
+    dir_world = -fwdW
+dir_local = world_dir_to_local(dir_world)     # convert to local for drawing
+# pass dir_local into draw_contrail(...)
+
+(If you’ve already done this, you’re set.)
+
+
+---
+
+C) GUI table JSON (what names to list)
+
+Your MainWindow.update_sensor_table() fills rows by matching names in the received dict. Use a JSON like this (save it e.g. as json/sensors_CMI.json and load it with your “Browse JSON” button):
+
+{
+  "sensors": [
+    { "name": "TIME_S",     "type": "float", "unit": "s",   "range": [0, 99999] },
+    { "name": "INS_YAW",    "type": "float", "unit": "deg", "range": [-180, 180] },
+    { "name": "INS_PITCH",  "type": "float", "unit": "deg", "range": [-90, 90] },
+    { "name": "INS_ROLL",   "type": "float", "unit": "deg", "range": [-180, 180] },
+
+    { "name": "ALT",        "type": "float", "unit": "m",   "range": [-10, 50000] },
+    { "name": "POS_X",      "type": "float", "unit": "m" },
+    { "name": "POS_Y",      "type": "float", "unit": "m" },
+    { "name": "POS_Z",      "type": "float", "unit": "m" },
+
+    { "name": "VEL_X",      "type": "float", "unit": "m/s" },
+    { "name": "VEL_Y",      "type": "float", "unit": "m/s" },
+    { "name": "VEL_Z",      "type": "float", "unit": "m/s" },
+
+    { "name": "ACC_X",      "type": "float", "unit": "m/s²" },
+    { "name": "ACC_Y",      "type": "float", "unit": "m/s²" },
+    { "name": "ACC_Z",      "type": "float", "unit": "m/s²" },
+
+    { "name": "THRUST_N",   "type": "float", "unit": "N" },
+    { "name": "MASS_KG",    "type": "float", "unit": "kg" }
+  ]
+}
+
+No generators needed — the table only uses name, type, and optionally range/unit.
+
+
+---
+
+D) main.py — launch sim from the same button (and reuse the existing client)
+
+Your current MainWindow already creates a SensorClient connected to 127.0.0.1:9999 and wires data_received to update_sensor_table — perfect. All you need is to make the button spawn modules/missile_sim.py (which now auto-loads ../json/config.json and starts the embedded server):
+
+Replace your open_gl_window with a subprocess launcher:
+
+# at top
+import subprocess
+from pathlib import Path
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        ...
+        widgets.btn_3d.clicked.disconnect()  # if previously connected to gl_viewer
+        widgets.btn_3d.clicked.connect(self.open_gl_window)
+        self._sim_proc = None
+        ...
+
+    def open_gl_window(self):
+        root = Path(__file__).resolve().parent
+        sim  = root / "modules" / "missile_sim.py"
+        cfg  = root / "json" / "config.json"
+
+        # Launch the sim in a separate process (no event-loop conflicts)
+        creation = subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
+        try:
+            self._sim_proc = subprocess.Popen(
+                [sys.executable, str(sim), "--config", str(cfg)],
+                cwd=str(root),
+                creationflags=creation
+            )
+        except Exception as e:
+            print("Failed to launch missile sim:", e)
+
+That’s it: click the button → sim window starts → its embedded TCP server streams → your existing SensorClient picks it up → table updates live. When the missile hits the surface, the sim stops logging, the server thread exits, and the GUI can continue displaying the last values.
+
+
+---
+
+Notes / tuning
+
+Rate: telemetry.interval_ms can be 5–20 ms on your box; 10 ms default is a good balance.
+
+Log files: plain JSONL (.jsonl) lines under logs/. Each run: simlog_YYYYMMDD_XX.jsonl.
+
+Firewall: first run may prompt on Windows — allow local loopback.
+
+Multiple clients: this simple server handles one client at a time; reconnects are fine. If you need multi-client later, we can broadcast to a small list of sockets.
+
+
+If you want me to fold these patches into your current missile_sim.py and return a single updated file, say the word and I’ll assemble it end-to-end.
+
