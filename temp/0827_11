@@ -1,0 +1,139 @@
+Great catch — that TypeError is exactly why your telemetry thread died right after starting.
+
+Here’s a tiny, safe patch to make current_mass work with either calling style and to make the telemetry loop never crash from a bad sample.
+
+
+---
+
+1) Make current_mass accept an optional t (backward-compatible)
+
+Replace your existing current_mass with this version:
+
+def current_mass(t=None) -> float:
+    """
+    Returns total mass [kg].
+    t can be:
+      - None  -> use current sim time g_time (and g_launch_t if present)
+      - a float -> interpreted as absolute sim time; if g_launch_t exists,
+                   we subtract it to get burn elapsed.
+    Works for both legacy current_mass() and current_mass(g_time) callers.
+    """
+    rc = g_cfg.rocket
+    prop0 = float(rc.propellant_mass)
+    dry   = float(rc.dry_mass)
+
+    if g_burn_time <= 1e-9:
+        return dry + prop0
+
+    # Determine elapsed burn time
+    if t is None:
+        # derive from current globals
+        if g_has_launched:
+            elapsed = max(0.0, (g_time - (globals().get("g_launch_t", 0.0))))
+        else:
+            elapsed = 0.0
+    else:
+        # treat t as absolute sim time; if launch_t known, subtract it
+        elapsed = max(0.0, (float(t) - (globals().get("g_launch_t", 0.0))))
+
+    burn_ratio = clamp(elapsed / g_burn_time, 0.0, 1.0)
+    return dry + prop0 * (1.0 - burn_ratio)
+
+> This lets old calls like current_mass(g_time) and new calls like current_mass() both work. No more “missing 1 required positional argument: 't'”.
+
+
+
+If you reference g_launch_t, make sure you set it when launching:
+
+def cmd_launch():
+    global g_has_launched, g_sim_active, g_paused, g_launch_t
+    if not g_has_launched:
+        g_has_launched = True
+        g_sim_active   = True
+        g_paused       = False
+        g_launch_t     = g_time   # <-- add this if you don’t already
+
+
+---
+
+2) Call current_mass consistently in telemetry
+
+In telemetry_snapshot(), either is now fine; I recommend the explicit call:
+
+"MASS_KG": round(float(current_mass(g_time)), 2),
+
+(If you prefer, current_mass() with no args also works now.)
+
+
+---
+
+3) Make the telemetry thread resilient (so one error won’t kill it)
+
+In _telemetry_loop(), wrap snapshot/send so exceptions can’t terminate the thread:
+
+try:
+    snap = telemetry_snapshot()
+except Exception as ex:
+    print("[telemetry] snapshot error:", repr(ex))
+    # skip this tick but keep server alive
+    next_t += dt
+    continue
+
+line = json.dumps(snap, ensure_ascii=False) + "\n"
+
+# write log
+if logf:
+    try:
+        logf.write(line); logf.flush()
+    except Exception as ex:
+        print("[telemetry] write error:", repr(ex))
+
+# send to client
+if conn:
+    try:
+        conn.sendall(line.encode("utf-8"))
+    except Exception as ex:
+        print("[telemetry] client send error:", repr(ex))
+        try: conn.close()
+        except: pass
+        conn = None
+        print("[telemetry] client disconnected")
+
+
+---
+
+4) Quick sanity checklist
+
+After you start the sim (console window), you should see:
+
+[telemetry] serving on 127.0.0.1:PORT ...
+
+
+Press L (launch):
+
+You should see: [telemetry] logging to ...\logs\simlog_YYYYMMDD_XX.jsonl
+
+And periodic: [telemetry] sent=100 streaming=1, etc.
+
+
+Run your telepeek (or your GUI client) against the same port and you’ll see JSON lines flowing.
+
+Press Space / R / land:
+
+You should see: [telemetry] log closed
+
+Table freezes; a new file opens on the next L.
+
+
+
+If anything still doesn’t appear:
+
+Confirm start_telemetry() is called after load_config() and before glutInit(...).
+
+Confirm your config’s telemetry.port matches the client’s port.
+
+If you see [telemetry] snapshot error: ... printouts, paste one and I’ll tell you the exact field that’s tripping it.
+
+
+This patch removes the signature mismatch, keeps your physics consistent, and prevents the telemetry server from silently dying again.
+
