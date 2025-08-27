@@ -1,0 +1,307 @@
+Thanks—if telepeek can’t connect, the sim’s telemetry thread simply never bound a port. Let’s make that impossible to miss and fix it in three tiny steps:
+
+
+---
+
+1) Make the server loudly start (or loudly say why it didn’t)
+
+A) Add these diagnostics to modules/missile_sim.py
+
+Put this near your imports (top):
+
+import atexit, socket, threading, json, time
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+Dataclass (if not already present):
+
+@dataclass
+class TelemetryConfig:
+    enable: bool = True
+    host: str = "127.0.0.1"
+    port: int = 9999
+    interval_ms: int = 10
+    log_enable: bool = True
+    log_dir: str = "logs"
+
+After you call load_config(...), ensure the telemetry block exists and print it:
+
+def main():
+    # ... find cfg_path ...
+    cfg = load_config(cfg_path)                     # your existing loader
+    # Ensure telemetry exists (fill defaults if missing)
+    tel = getattr(cfg, "telemetry", None)
+    if tel is None or not isinstance(tel, TelemetryConfig):
+        # try to pull from dict if your loader leaves raw dicts
+        raw = {}
+        try:
+            import json, os
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except Exception:
+            pass
+        tdict = raw.get("telemetry", {}) if isinstance(raw, dict) else {}
+        cfg.telemetry = TelemetryConfig(
+            enable=tdict.get("enable", True),
+            host=tdict.get("host", "127.0.0.1"),
+            port=int(tdict.get("port", 9999)),
+            interval_ms=int(tdict.get("interval_ms", 10)),
+            log_enable=tdict.get("log_enable", True),
+            log_dir=tdict.get("log_dir", "logs"),
+        )
+
+    # Globals you already keep
+    global g_cfg, MODULE_DIR, PROJECT_ROOT
+    g_cfg = cfg
+    try:
+        print(f"[cfg] loaded '{cfg_path}'")
+    except Exception:
+        pass
+    print(f"[cfg] telemetry = host={g_cfg.telemetry.host} port={g_cfg.telemetry.port} "
+          f"enable={g_cfg.telemetry.enable} interval_ms={g_cfg.telemetry.interval_ms} "
+          f"log_enable={g_cfg.telemetry.log_enable} log_dir={g_cfg.telemetry.log_dir}")
+
+    # >>> START TELEMETRY *BEFORE* GLUT init <<<
+    atexit.register(stop_telemetry)
+    start_telemetry()
+
+    # Now GLUT as usual
+    glutInit(sys.argv)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+    # ...
+    glutMainLoop()
+
+Harden start_telemetry() so it prints why it skips:
+
+def start_telemetry():
+    tc = getattr(g_cfg, "telemetry", None)
+    if tc is None:
+        print("[telemetry] SKIP: g_cfg.telemetry is missing")
+        return
+    if not tc.enable:
+        print("[telemetry] SKIP: disabled in config")
+        return
+    print(f"[telemetry] starting thread… host={tc.host} port={tc.port}")
+    g_tel_stop.clear()
+    t = threading.Thread(target=_telemetry_loop, daemon=True)
+    t.start()
+    globals()["g_tel_thread"] = t
+
+Replace your _telemetry_loop() with this very loud version (prints exact port + log path and a heartbeat):
+
+def _telemetry_loop():
+    cfg = g_cfg.telemetry
+    dt = max(1, int(cfg.interval_ms)) / 1000.0
+    log_root = (PROJECT_ROOT / cfg.log_dir)
+    print(f"[telemetry] log dir: {log_root.resolve()}")
+
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind((cfg.host, int(cfg.port)))
+        srv.listen(1)
+        srv.setblocking(False)
+        print(f"[telemetry] serving on {cfg.host}:{cfg.port} (non-blocking)")
+    except Exception as e:
+        print("[telemetry] ERROR bind/listen failed:", repr(e))
+        try: srv.close()
+        except: pass
+        return
+
+    conn = None
+    logf = None
+    was_streaming = False
+    next_t = time.perf_counter()
+    sent_count = 0
+
+    def _open_next_logfile(dirp: Path):
+        try:
+            dirp.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d")
+            for idx in range(100):
+                p = dirp / f"simlog_{stamp}_{idx:02d}.jsonl"
+                if not p.exists():
+                    f = p.open("w", encoding="utf-8")
+                    print(f"[telemetry] logging to {p.resolve()}")
+                    return f
+        except Exception as ex:
+            print("[telemetry] ERROR opening log:", repr(ex))
+        return None
+
+    try:
+        while not g_tel_stop.is_set():
+            if conn is None:
+                try:
+                    conn, addr = srv.accept()
+                    conn.setblocking(False)
+                    print(f"[telemetry] client {addr} connected")
+                except (BlockingIOError, InterruptedError):
+                    pass
+                except Exception as ex:
+                    print("[telemetry] accept error:", repr(ex))
+
+            # stream iff launched and active and not paused
+            streaming = bool(g_has_launched and g_sim_active and not g_paused)
+
+            # rotate log on edges or explicit request
+            if cfg.log_enable:
+                if streaming and not was_streaming and logf is None:
+                    logf = _open_next_logfile(log_root)
+                if ((was_streaming and not streaming) or g_tel_rotate_log.is_set()) and logf:
+                    try: logf.flush(); logf.close()
+                    except: pass
+                    logf = None
+                    g_tel_rotate_log.clear()
+                    print("[telemetry] log closed")
+            was_streaming = streaming
+
+            now = time.perf_counter()
+            if now < next_t:
+                time.sleep(min(0.002, max(0.0, next_t - now)))
+                continue
+            next_t += dt
+
+            if not streaming:
+                continue
+
+            line = json.dumps(telemetry_snapshot(), ensure_ascii=False) + "\n"
+
+            if logf:
+                try: logf.write(line); logf.flush()
+                except Exception as ex: print("[telemetry] write error:", repr(ex))
+
+            if conn:
+                try: conn.sendall(line.encode("utf-8"))
+                except Exception as ex:
+                    print("[telemetry] client send error:", repr(ex))
+                    try: conn.close()
+                    except: pass
+                    conn = None
+                    print("[telemetry] client disconnected")
+
+            sent_count += 1
+            if sent_count % 100 == 0:
+                print(f"[telemetry] sent={sent_count} streaming=1")
+
+    finally:
+        try: srv.close()
+        except: pass
+        try:
+            if conn: conn.close()
+        except: pass
+        try:
+            if logf: logf.flush(); logf.close()
+        except: pass
+        print("[telemetry] stopped")
+
+Make sure these globals and helpers exist:
+
+g_tel_stop = threading.Event()
+g_tel_rotate_log = threading.Event()
+g_has_launched = False
+g_sim_active = False
+g_paused = False
+
+def stop_telemetry():
+    g_tel_stop.set()
+    g_tel_rotate_log.set()
+
+def telemetry_mark_reset():
+    g_tel_rotate_log.set()
+
+And that your state flips actually happen:
+
+On L: g_has_launched=True; g_sim_active=True; g_paused=False
+
+On Space: toggle g_paused
+
+On R: call telemetry_mark_reset(); g_has_launched=False; g_sim_active=False; g_paused=False
+
+On touchdown (in step_sim): set g_sim_active=False
+
+
+> If any one of those doesn’t fire, the log won’t open (you’ll still see “[telemetry] serving on …” though).
+
+
+
+
+---
+
+2) Make sure the port matches your client
+
+You said your “tele” client is on 8888. Either:
+
+set the sim to 8888 in json/config.json:
+
+"telemetry": { "enable": true, "host": "127.0.0.1", "port": 8888, "interval_ms": 10,
+               "log_enable": true, "log_dir": "logs" }
+
+and expect to see [telemetry] serving on 127.0.0.1:8888 in the sim console,
+
+
+or (simpler) go back to 9999 everywhere and use a single client.
+
+Until the sim prints the “serving on …” line, no client will ever connect.
+
+
+---
+
+3) One-command sanity check (no GUI needed)
+
+From a terminal, after launching the sim:
+
+# pick the same port you set in config
+python - <<'PY'
+import socket, time
+PORT = 9999  # or 8888
+try:
+    s = socket.create_connection(("127.0.0.1", PORT), timeout=2)
+    s.settimeout(2.0)
+    print("connected to", PORT)
+    t0=time.time(); n=0; buf=b""
+    while n<20 and time.time()-t0<5:
+        try:
+            buf += s.recv(65536)
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n",1)
+                print(line.decode("utf-8","replace"))
+                n+=1
+        except Exception as e:
+            time.sleep(0.05)
+    print("got", n, "lines")
+except Exception as e:
+    print("connect failed:", e)
+PY
+
+Before you press L → it will likely connect but receive 0 lines (no streaming).
+
+After you press L → you should see many JSON lines.
+
+If this connects but you see 0 lines even after L, your state flags aren’t flipping—fix those handlers.
+
+
+
+---
+
+Likeliest reasons you saw nothing
+
+1. start_telemetry() was never called after load_config() → thread had no port/log_dir.
+(The exact print lines above will prove this.)
+
+
+2. Port mismatch (GUI on 8888, sim still on 9999).
+(The sim will print the actual port it bound.)
+
+
+3. Launch/pause/reset flags not toggling → stream gate stays closed.
+(You’ll still see “serving on …”, but never “logging to …”, and no packets.)
+
+
+4. Two sim processes fighting the port (one already bound it).
+(You’d see “ERROR bind/listen failed: … already in use”.)
+
+
+
+Apply the patches, run the sim from a console, and read the first five telemetry lines it prints. That will tell you exactly what’s happening (port, folder, and whether it’s streaming).
+
