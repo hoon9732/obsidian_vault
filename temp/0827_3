@@ -1,0 +1,20 @@
+Now we are going to do something more complex
+1. Adding a socket server function in missile_sim.py so that it can generate real-time data as in tcp_server.py
+All the data appearing in the missile_sim.py screen(altitude, position(x,y,z), velocity(vx,vy,vz) etc.) should be generated in 0.01s interval(the smaller the better, adjustable interval)and sent via socket
+so that it can be received by the tcp_client.py module of the main.py
+
+2. The sensorTable_19 in main.py should be able to present all the numbers received via tcp_client module, with sensor datas structure in the following JSON file format(generator is unnecessary, because they are not randomly generated numbers)
+Preexisting sensors_CMI.json example:
+{
+  "sensors": [
+    { "name": "INS_PITCH",         "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 2.0, "period": 200, "noise": 1.0,
+      "range": [-5.0, 5.0] },
+
+    { "name": "INS_ROLL",          "type": "float", "unit": "deg",  "generator": "sine",
+      "center": 0.0, "amplitude": 3.0, "period": 250, "noise": 1.0,
+      "range": [-8.0, 8.0] },
+...
+
+3. The data from t=0.00 to the end of the missile simulation(simulation should stop when missile hits ground) should be automatically saved in the logs folder with automatically generate date and time(simlog_YYYYMMDD_##)
+
