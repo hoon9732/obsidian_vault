@@ -1,0 +1,354 @@
+Great, let’s make three things rock-solid:
+
+logs always written (one file per flight), closed on pause/reset/exit,
+
+tables update every ~10 ms while the sim is running, and freeze when paused/reset/ended,
+
+keep your existing GUI buttons/flows.
+
+
+Below are surgical patches you can paste into your current files.
+
+
+---
+
+1) modules/missile_sim.py — telemetry & logging that follow sim state
+
+A) Imports & globals (top of file, near other imports/globals)
+
+import atexit
+import socket, threading, json, time
+from datetime import datetime
+from pathlib import Path
+
+# --- telemetry state ---
+g_tel_thread = None
+g_tel_stop = threading.Event()
+g_tel_rotate_log = threading.Event()  # request to close/rotate log (on reset, exit)
+
+# --- sim state flags (make sure they exist) ---
+g_paused = False        # Space toggles this
+g_has_launched = False  # set True on first 'L'
+g_sim_active = False    # True during active flight; False on touchdown/reset
+
+B) Helper: current mass & snapshot (unchanged if you already have similar)
+
+def current_mass() -> float:
+    rc = g_cfg.rocket
+    if not g_has_launched or g_burn_time <= 1e-9:
+        return rc.dry_mass + rc.propellant_mass
+    burn = clamp(g_time / g_burn_time, 0.0, 1.0)
+    return rc.dry_mass + rc.propellant_mass * (1.0 - burn)
+
+def telemetry_snapshot() -> dict:
+    return {
+        "timestamp": datetime.now().isoformat(timespec="milliseconds"),
+        "TIME_S": round(float(g_time), 3),
+        "INS_YAW":   round(rad2deg(float(g_yaw)), 3),
+        "INS_PITCH": round(rad2deg(float(g_pitch)), 3),
+        "INS_ROLL":  round(rad2deg(float(g_roll)), 3),
+        "POS_X": round(float(g_pos[0]), 3),
+        "POS_Y": round(float(g_pos[1]), 3),
+        "POS_Z": round(float(g_pos[2]), 3),
+        "VEL_X": round(float(g_vel[0]), 3),
+        "VEL_Y": round(float(g_vel[1]), 3),
+        "VEL_Z": round(float(g_vel[2]), 3),
+        "ACC_X": round(float(g_acc[0]), 3),
+        "ACC_Y": round(float(g_acc[1]), 3),
+        "ACC_Z": round(float(g_acc[2]), 3),
+        "ALT": round(float(g_pos[1]), 3),
+        "THRUST_N": round(float(current_thrust(g_time)), 2),
+        "MASS_KG": round(float(current_mass()), 2),
+    }
+
+C) Telemetry I/O + logging thread (open on launch, close on pause/reset/landing/exit)
+
+@dataclass
+class TelemetryConfig:
+    enable: bool = True
+    host: str = "127.0.0.1"
+    port: int = 9999
+    interval_ms: int = 10
+    log_enable: bool = True
+    log_dir: str = "logs"
+
+def _open_next_logfile(log_dir: Path):
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d")
+        for idx in range(100):
+            p = log_dir / f"simlog_{stamp}_{idx:02d}.jsonl"
+            if not p.exists():
+                return p.open("w", encoding="utf-8")
+    except Exception as e:
+        print("[telemetry] log open failed:", e)
+    return None
+
+def _telemetry_loop():
+    cfg = g_cfg.telemetry
+    dt = max(1, int(cfg.interval_ms)) / 1000.0
+
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind((cfg.host, int(cfg.port)))
+        srv.listen(1)
+        srv.setblocking(False)
+        print(f"[telemetry] serving on {cfg.host}:{cfg.port} every {cfg.interval_ms} ms")
+    except Exception as e:
+        print("[telemetry] bind/listen failed:", e)
+        try: srv.close()
+        except: pass
+        return
+
+    conn = None
+    logf = None
+    was_streaming = False
+    next_t = time.perf_counter()
+
+    try:
+        while not g_tel_stop.is_set():
+            # accept a client (non-block)
+            if conn is None:
+                try:
+                    conn, addr = srv.accept()
+                    conn.setblocking(False)
+                    print(f"[telemetry] client {addr} connected")
+                except (BlockingIOError, InterruptedError):
+                    pass
+
+            # compute streaming gate from sim state
+            streaming = bool(g_has_launched and g_sim_active and not g_paused)
+
+            # rotate/open/close log on state changes or explicit request
+            if cfg.log_enable:
+                if streaming and not was_streaming and logf is None:
+                    logf = _open_next_logfile((PROJECT_ROOT / cfg.log_dir))
+                    if logf:
+                        print(f"[telemetry] logging started")
+                if ((was_streaming and not streaming) or g_tel_rotate_log.is_set()) and logf:
+                    try: logf.flush(); logf.close()
+                    except: pass
+                    logf = None
+                    g_tel_rotate_log.clear()
+                    print(f"[telemetry] logging stopped")
+
+            was_streaming = streaming
+
+            now = time.perf_counter()
+            if now < next_t:
+                time.sleep(min(0.002, max(0.0, next_t - now)))
+                continue
+            next_t += dt
+
+            if not streaming:
+                # don't send or log while paused/reset/not launched
+                continue
+
+            snap = telemetry_snapshot()
+            line = json.dumps(snap, ensure_ascii=False) + "\n"
+
+            if logf:
+                try: logf.write(line)
+                except: pass
+
+            if conn:
+                try:
+                    conn.sendall(line.encode("utf-8"))
+                except Exception:
+                    try: conn.close()
+                    except: pass
+                    conn = None
+                    print("[telemetry] client disconnected")
+
+        # graceful stop requested
+    finally:
+        try: srv.close()
+        except: pass
+        try:
+            if conn: conn.close()
+        except: pass
+        try:
+            if logf: logf.flush(); logf.close()
+        except: pass
+        print("[telemetry] stopped")
+
+def start_telemetry():
+    if not getattr(g_cfg, "telemetry", None) or not g_cfg.telemetry.enable:
+        return
+    g_tel_stop.clear()
+    t = threading.Thread(target=_telemetry_loop, daemon=True)
+    t.start()
+    globals()["g_tel_thread"] = t
+
+def stop_telemetry():
+    g_tel_stop.set()
+    g_tel_rotate_log.set()  # ensure file closes
+    t = globals().get("g_tel_thread")
+    if t and t.is_alive():
+        t.join(timeout=1.0)
+
+def telemetry_mark_reset():
+    # call on reset to close the current log (a new one will open on next launch)
+    g_tel_rotate_log.set()
+
+D) Call order in main()
+
+Make sure you start telemetry after loading config, before GLUT loop:
+
+def main():
+    ...
+    g_cfg = load_config(cfg_path)
+    g_cfg._cfg_dir = str(Path(cfg_path).resolve().parent) if cfg_path else str(PROJECT_ROOT / "json")
+    atexit.register(stop_telemetry)  # close file on process exit
+    start_telemetry()                # << start thread here
+
+    # GLUT init follows
+    glutInit(sys.argv)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+    ...
+    glutMainLoop()
+
+E) Tie sim state to keys & step function
+
+Spacebar pause/resume should gate physics and telemetry:
+
+def on_keyboard(key, x, y):
+    global g_paused
+    if key == b' ':
+        g_paused = not g_paused
+
+Launch should mark active flight (opens log on first tick):
+
+def cmd_launch():
+    global g_has_launched, g_sim_active, g_paused
+    if not g_has_launched:
+        g_has_launched = True
+        g_sim_active = True
+        g_paused = False
+
+Reset should end streaming and rotate log:
+
+def reset_sim():
+    global g_has_launched, g_sim_active, g_paused
+    telemetry_mark_reset()
+    g_has_launched = False
+    g_sim_active = False
+    g_paused = False
+    # ... your existing reset position/orientation code ...
+
+Step function should early-out when paused, and stop on contact (closing log):
+
+def step_sim(dt: float):
+    global g_sim_active
+    # freeze if not launched OR paused
+    if (not g_has_launched) or g_paused:
+        g_vel[:] = 0.0; g_acc[:] = 0.0
+        return
+
+    # ... physics integration (thrust/drag/gravity) ...
+
+    # ground collision → stop flight
+    ground_y = max(0.0, terrain_height_at(g_pos[0], g_pos[2]))
+    if g_pos[1] <= ground_y:
+        g_pos[1] = ground_y
+        g_vel[:] = 0.0; g_acc[:] = 0.0
+        # optional angular damping
+        g_yaw_rate *= 0.2; g_pitch_rate *= 0.2; g_roll_rate *= 0.2
+        g_sim_active = False          # << telemetry loop will close the log
+        return
+
+That’s all you need in the sim:
+
+When you press L → stream/log starts.
+
+Press Space → stream/log pauses (no lines).
+
+Press R (reset) → current log is closed, new one will open on next launch.
+
+On touchdown → stream stops & log closes.
+
+On window close → atexit closes log.
+
+
+
+---
+
+2) main.py — make the table update every 10 ms while sim runs
+
+You already have:
+
+a SensorClient that connects to 127.0.0.1:9999,
+
+data_received → update_sensor_table.
+
+
+You don’t need to change emit intervals; the sim sends every interval_ms (10 ms default), so updates naturally arrive that fast. A couple of small tweaks ensure the right table gets updated and things stop when you pause the client (optional):
+
+A) Make sure table_map points to the tables inside tabWidget_3
+
+(If you haven’t already applied this from my previous message.)
+
+from PySide6.QtWidgets import QTableWidget
+
+def _rebuild_table_map(self):
+    self.table_map.clear()
+    tabw = widgets.tabWidget_3
+    for i in range(tabw.count()):
+        page = tabw.widget(i)
+        tbl = page.findChild(QTableWidget)
+        if tbl is not None:
+            self.table_map[i] = tbl
+
+Call it in __init__ after widgets = self.ui:
+
+self.table_map = {}
+self.tabw = widgets.tabWidget_3
+self._rebuild_table_map()
+
+And keep your existing:
+
+self.sensor_client = SensorClient(host="127.0.0.1", port=9999, parent=self)
+self.sensor_client.data_received.connect(self.update_sensor_table)
+self.sensor_client.start()
+
+The table will now update as soon as the sim launches and streams. When you hit Space or Reset in the sim, the server stops emitting lines → your table values freeze automatically (no extra GUI code needed).
+
+B) Use your existing “Load Telemetry JSON” button per-tab
+
+No code changes needed. This fills the current page’s table with the sensor names you selected. The stream then populates the “Value” column as data arrives.
+
+C) Optional: GUI-side pause/resume
+
+Your toggle_stream already stops/starts the client thread. If you want the GUI and sim to pause together, wire the GUI Pause button to send a keystroke to the sim or simply let the sim’s Space control the stream (recommended). Either way, the tables stop updating when the server stops sending.
+
+
+---
+
+3) Quick test matrix
+
+1. Start GUI → click your “Open GL” button → sim window opens.
+
+
+2. Load a telemetry JSON in the tab containing sensorTable_19
+(button is already connected to browse_json_for_current_tab).
+
+
+3. Press L in the sim → table starts ticking at ~10 ms; a log file appears under /logs/.
+
+
+4. Press Space in the sim → table stops changing; the log file is closed.
+
+
+5. Press L again → a new log file is created and the table resumes.
+
+
+6. Press R in the sim → table freezes; current log closed; next launch opens new log.
+
+
+7. Close the sim window → atexit closes any open log.
+
+
+
+If any of those steps doesn’t behave exactly as described, tell me which one and I’ll tune the specific block.
+
