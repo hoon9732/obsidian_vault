@@ -1,0 +1,275 @@
+Perfect—let’s make it “hands-off”:
+
+the sim controls start/stop of the stream & logs,
+
+your GUI always listens (no toggle button),
+
+tables update at ~10 ms while the sim is running, and freeze + show “Paused/No data” otherwise,
+
+one log file per flight.
+
+
+Below are exact code drops.
+
+
+---
+
+1) missile_sim.py — confirm telemetry state hooks (quick check)
+
+You already placed start_telemetry() in main()—good. Make sure these state flags are set so the telemetry thread knows when to open/close the log and when to emit:
+
+# globals
+g_has_launched = False
+g_sim_active   = False
+g_paused       = False
+
+def cmd_launch():
+    global g_has_launched, g_sim_active, g_paused
+    if not g_has_launched:
+        g_has_launched = True
+        g_sim_active   = True
+        g_paused       = False
+
+def on_keyboard(key, x, y):
+    global g_paused
+    if key == b' ':
+        g_paused = not g_paused   # pause/resume stream & physics
+
+def reset_sim():
+    global g_has_launched, g_sim_active, g_paused
+    telemetry_mark_reset()        # closes current log
+    g_has_launched = False
+    g_sim_active   = False
+    g_paused       = False
+    # ... your existing reset code ...
+
+def step_sim(dt: float):
+    global g_sim_active
+    if (not g_has_launched) or g_paused:
+        g_vel[:] = 0.0; g_acc[:] = 0.0
+        return
+    # ... physics ...
+    ground_y = max(0.0, terrain_height_at(g_pos[0], g_pos[2]))
+    if g_pos[1] <= ground_y:
+        g_pos[1] = ground_y
+        g_vel[:] = 0.0; g_acc[:] = 0.0
+        g_yaw_rate *= .2; g_pitch_rate *= .2; g_roll_rate *= .2
+        g_sim_active = False       # ends stream; logger closes the file
+        return
+
+> In main(), keep:
+
+atexit.register(stop_telemetry)
+start_telemetry()
+
+
+
+If that’s in place, logs will appear under logs/simlog_YYYYMMDD_XX.jsonl starting when you press L, and they’ll close on Space, R, landing, or exit.
+
+
+---
+
+2) main.py — telemetry is sim-driven (no GUI toggle)
+
+You’ve already made the “tele” versions of your table functions. Here’s what to add so the table auto-updates and shows status without any extra buttons.
+
+A) Start the client once, reconnect silently, and listen
+
+In MainWindow.__init__ (after setupUi and widgets = self.ui), add:
+
+# --- Telemetry tables live inside tabWidget_3 ---
+from PySide6.QtWidgets import QTableWidget
+self.tabw = widgets.tabWidget_3
+
+# map: telemetry tab index -> its QTableWidget
+self.tele_table_map: dict[int, QTableWidget] = {}
+
+def _rebuild_telemetry_table_map():
+    self.tele_table_map.clear()
+    for i in range(self.tabw.count()):
+        page = self.tabw.widget(i)
+        tbl = page.findChild(QTableWidget)
+        if tbl is not None:
+            self.tele_table_map[i] = tbl
+
+_rebuild_telemetry_table_map()
+
+# per-telemetry tab sensor lists + meta
+self.tele_sensor_lists: dict[int, list[str]] = {}
+self.sensor_meta: dict[str, dict] = {}      # you already have this; reuse
+
+# Load last JSONs just for tabWidget_3 pages
+for i in range(self.tabw.count()):
+    key = f"tele/tab/{i}/lastJson"
+    path = self.settings.value(key, "", type=str)
+    if path and os.path.isfile(path):
+        self.last_json_paths[i] = path
+        self.tele_sensor_lists[i] = self._load_json_return_sensor_names(path)
+        self._populate_table_structure_for_tele(i)
+
+# ---- Telemetry client: start ONCE and keep listening (sim controls the stream) ----
+from modules.tcp_client import SensorClient
+self.sensor_client = SensorClient(host="127.0.0.1", port=9999, parent=self)
+self.sensor_client.data_received.connect(self.update_telemetry_table)
+self.sensor_client.start()   # will reconnect when the sim appears
+
+# heartbeat: mark tables "Paused/No data" if no packets for a moment
+self._tele_last_packet_ts = 0.0
+self._tele_timer = QTimer(self)
+self._tele_timer.setInterval(200)   # 5 Hz UI refresh
+self._tele_timer.timeout.connect(self._tele_heartbeat)
+self._tele_timer.start()
+
+> This replaces any prior “auto-start on init” you removed earlier. It’s fine if the sim isn’t running at app start—SensorClient will keep trying; label updates handle the “no data” case.
+
+
+
+B) Telemetry JSON loader (acts on the current page of tabWidget_3)
+
+Wire your telemetry buttons (somewhere in __init__ where you wire signals):
+
+widgets.btn_load_telemetry.clicked.connect(self.browse_json_for_current_tab_tele)
+widgets.btn_launch_graph.clicked.connect(self.open_tele_graph_window)
+
+And implement the slot:
+
+def browse_json_for_current_tab_tele(self):
+    idx = self.tabw.currentIndex()
+    path, _ = QFileDialog.getOpenFileName(self, "Select telemetry JSON", "", "JSON (*.json)")
+    if not path:
+        return
+    self.last_json_paths[idx] = path
+    self.settings.setValue(f"tele/tab/{idx}/lastJson", path)
+    names = self._load_json_return_sensor_names(path)
+    self.tele_sensor_lists[idx] = names
+    self._populate_table_structure_for_tele(idx)
+
+Use your existing _populate_table_structure without duplicating code:
+
+def _populate_table_structure_for_tele(self, tab_idx: int) -> None:
+    # temporarily redirect to reuse your trusted builder
+    saved_map = getattr(self, "table_map", {})
+    saved_lists = getattr(self, "sensor_lists", {})
+    self.table_map = self.tele_table_map
+    self.sensor_lists = self.tele_sensor_lists
+    try:
+        self._populate_table_structure(tab_idx)  # <-- your existing function
+    finally:
+        self.table_map = saved_map
+        self.sensor_lists = saved_lists
+
+C) Live update + heartbeat status
+
+Packet handler (from SensorClient), updates values and records “last seen” time:
+
+def update_telemetry_table(self, packet: dict):
+    now = time.monotonic()
+    self._tele_last_packet_ts = now
+
+    for idx, sensors in self.tele_sensor_lists.items():
+        tbl = self.tele_table_map.get(idx)
+        if tbl is None:
+            continue
+        for row, name in enumerate(sensors):
+            if name not in packet:
+                continue
+            value = packet[name]
+            # Write connection + value
+            tbl.setItem(row, 1, QTableWidgetItem("Connected"))
+            tbl.setItem(row, 3, QTableWidgetItem(str(round(value, 2))))
+
+            # Approval from Range column (col 5)
+            rng_low = rng_high = None
+            cell = tbl.item(row, 5)
+            rng_txt = cell.text() if cell else "-"
+            if rng_txt.strip() not in ("—", "-", ""):
+                try:
+                    rng_low, rng_high = eval(rng_txt)
+                except Exception:
+                    pass
+            ok = (rng_low is None or value >= rng_low) and (rng_high is None or value <= rng_high)
+            appr = QTableWidgetItem("OK" if ok else "NG")
+            appr.setForeground(QBrush(QColor(0,255,0) if ok else QColor(255,0,0)))
+            tbl.setItem(row, 2, appr)
+
+Heartbeat: if no packets arrive for a short while (sim paused/reset/closed), mark status:
+
+def _tele_heartbeat(self):
+    stale = (time.monotonic() - self._tele_last_packet_ts) > 0.4  # ~2 intervals grace
+    if not stale:
+        return
+    # mark "Paused/No data" in the Connection column for all tele tables
+    for idx, tbl in self.tele_table_map.items():
+        sensors = self.tele_sensor_lists.get(idx, [])
+        for row, _ in enumerate(sensors):
+            tbl.setItem(row, 1, QTableWidgetItem("Paused / No data"))
+
+> You don’t need a GUI toggle anymore: the sim’s L / Space / R control data presence, so the table updates/freeze naturally.
+
+
+
+D) Telemetry graph (same tab, no new code paths)
+
+def open_tele_graph_window(self) -> None:
+    idx = self.tabw.currentIndex()
+    if idx not in self.tele_sensor_lists:
+        print("Load a telemetry JSON first.")
+        return
+    # build numeric meta from self.sensor_meta
+    numeric_meta = {
+        name: self.sensor_meta[name]
+        for name in self.tele_sensor_lists[idx]
+        if self.sensor_meta.get(name, {}).get("type") in ("int", "float")
+    }
+    if not numeric_meta:
+        print("No numeric sensors to plot.")
+        return
+
+    if hasattr(self, "graph_win") and self.graph_win and self.graph_win.isVisible():
+        try: self.sensor_client.data_received.disconnect(self.graph_win.update_from_packet)
+        except: pass
+        self.graph_win.close()
+        self.graph_win = None
+
+    from modules.graph_window import GraphWindow
+    self.graph_win = GraphWindow(numeric_meta, parent=self)
+    self.sensor_client.data_received.connect(self.graph_win.update_from_packet)
+    self.graph_win.destroyed.connect(lambda _: setattr(self, "graph_win", None))
+    self.graph_win.show()
+
+
+---
+
+Why your earlier issues happened
+
+10061 on app start happens if the client connects before the sim starts. That’s fine; with the client running continuously it will reconnect when the sim opens. The heartbeat ensures the UI shows “Paused / No data” until packets appear.
+
+No logs: in the sim, the file only opens when g_has_launched and g_sim_active and not g_paused flips from False→True. The snippets above ensure that happens on L, and that we close the file on Space, R, landing, or exit.
+
+
+
+---
+
+Quick end-to-end test
+
+1. Launch GUI → load telemetry JSON on a page in tabWidget_3 → rows appear (“Paused / No data”).
+
+
+2. Click your GL button → sim starts.
+
+
+3. Press L in the sim → table starts updating at ~10 ms rate; logs/simlog_…jsonl is created.
+
+
+4. Press Space → values freeze; “Paused / No data” appears after ~0.4 s; log closes.
+
+
+5. Press L again → a new simlog_… starts; values resume.
+
+
+6. Press R or land → table freezes; log closes.
+
+
+
+If you hit any specific line error while pasting, drop me that snippet and I’ll adjust it to your exact file.
+
