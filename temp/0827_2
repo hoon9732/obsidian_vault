@@ -114,3 +114,134 @@ class MainWIndow(QMainWindow)
 
 Taking above code structure into consideration, tell me how to revise the missile_sim.py code and main.py code to run the missile simulation by clicking gui button.
 
+from pathlib import Path
+
+# Paths
+MODULE_DIR   = Path(__file__).resolve().parent        # .../modules
+PROJECT_ROOT = MODULE_DIR.parent                      # project root (one level up)
+DEFAULT_CFG  = PROJECT_ROOT / "json" / "config.json"
+
+
+
+
+def resolve_path(p: str) -> str:
+    if not p:
+        return ""
+    cand = Path(p)
+    if cand.is_absolute() and cand.exists():
+        return str(cand)
+
+    # Try relative to: config folder -> modules -> project root -> assets under root -> CWD
+    bases = []
+    if getattr(g_cfg, "_cfg_dir", None):
+        bases.append(Path(g_cfg._cfg_dir))
+    bases += [MODULE_DIR, PROJECT_ROOT, PROJECT_ROOT / "assets", Path.cwd()]
+
+    for base in bases:
+        test = (base / p).resolve()
+        if test.exists():
+            return str(test)
+    return p  # let caller deal with it
+
+
+
+
+def main():
+    global g_cfg, g_missile_dl, g_heightmap_dl, g_mass0, g_burn_time
+    global g_cam_dist, g_sun_az, g_sun_el, g_sun_int, g_base_dir
+
+    # CLI override still works: --config <path>
+    cfg_path = None
+    if "--config" in sys.argv:
+        i = sys.argv.index("--config")
+        if i + 1 < len(sys.argv):
+            cfg_path = sys.argv[i + 1]
+
+    # Default: ../json/config.json (relative to this modules file)
+    if not cfg_path and DEFAULT_CFG.exists():
+        cfg_path = str(DEFAULT_CFG)
+
+    # Load config
+    g_cfg = load_config(cfg_path)
+    # Remember where the config lives (used by resolve_path)
+    g_cfg._cfg_dir = str(Path(cfg_path).resolve().parent) if cfg_path else str(PROJECT_ROOT / "json")
+
+    # Use project root as base for assets
+    g_base_dir = str(PROJECT_ROOT)
+
+    # ... keep your existing derived variables and GL init unchanged ...
+
+
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        ...
+        widgets.btn_open_gl.clicked.connect(self.open_gl_window)
+
+    def open_gl_window(self):
+        ...
+
+
+
+
+import sys, os, subprocess
+from pathlib import Path
+
+
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        ...
+        self.btn_open_gl.clicked.connect(self.open_gl_window)
+
+    def open_gl_window(self):
+        root = Path(__file__).resolve().parent
+        sim  = root / "modules" / "missile_sim.py"
+        cfg  = root / "json" / "config.json"
+
+        env = os.environ.copy()
+        # env["PYMISSILE_USE_ASSIMP"] = "0"  # optional, if you keep assimp off
+
+        creation = subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
+
+        subprocess.Popen(
+            [sys.executable, str(sim), "--config", str(cfg)],
+            cwd=str(root),            # << important: project root as WD
+            env=env,
+            creationflags=creation
+        )
+
+
+
+
+
+from pathlib import Path
+from PySide6.QtCore import QProcess  # or from PyQt5.QtCore import QProcess
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        ...
+        self._sim_proc = None
+        self.btn_open_gl.clicked.connect(self.open_gl_window)
+
+    def open_gl_window(self):
+        root = Path(__file__).resolve().parent
+        sim  = root / "modules" / "missile_sim.py"
+        cfg  = root / "json" / "config.json"
+
+        if self._sim_proc is None:
+            self._sim_proc = QProcess(self)
+            self._sim_proc.finished.connect(lambda *_: setattr(self, "_sim_proc", None))
+
+        self._sim_proc.setWorkingDirectory(str(root))
+        self._sim_proc.setProgram(sys.executable)
+        self._sim_proc.setArguments([str(sim), "--config", str(cfg)])
+        self._sim_proc.start()  # non-blocking
+
+
+
+
