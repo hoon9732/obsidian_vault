@@ -100,3 +100,17 @@ def launch_missile_sim():
 from PySide6.QtWidgets import QPushButton
 # ...
 self.btn_open_gl.clicked.connect(launch_missile_sim)
+
+I am currently considering getting rid of gl_viewer.py because it is too much clutter. I am going to move missile_sim.py into the modules folder and config.json into json folder. Tell me what i should change in the missile_sim.py code accordingly.
+
+Also, the main.py originally called open_gl_window by
+class MainWIndow(QMainWindow)
+    def __init__(self):
+        ...
+         widgets.btn_open_gl.clicked.connect(self.open_gl_window)
+
+    def open_gl_window(self):
+        ...
+
+Taking above code structure into consideration, tell me how to revise the missile_sim.py code and main.py code to run the missile simulation by clicking gui button.
+
