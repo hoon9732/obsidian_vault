@@ -4,3 +4,99 @@ Everything is working fine except for the contrail direction.
 And now I need new features added.
 
 2. This whole missile_sim.py code was intended as a submodule for the larger gui i've been making. The main.py code opens up gl_viewer.py module in the modules folder when btn_open_gl is clicked in gui. I want to connect the gui code to the missile_sim.py now. Tell me how I can seamlessly turn on missile_sim.py by pressing the same button in gui.
+
+
+
+
+def body_basis_from_angles(yaw: float, pitch: float, roll: float):
+    """Return orthonormal world-space basis vectors (right, up, forward)."""
+    f = body_forward_from_angles(yaw, pitch)        # forward in world
+    upW = np.array([0.0, 1.0, 0.0], np.float32)
+    r = np.cross(upW, f);  n = np.linalg.norm(r)
+    if n < 1e-8: r = np.array([1.0, 0.0, 0.0], np.float32)
+    else:        r = r / n
+    u = np.cross(f, r);    u = u / (np.linalg.norm(u) + 1e-9)
+    # apply roll about forward
+    cr, sr = math.cos(roll), math.sin(roll)
+    r2 = r*cr + u*sr
+    u2 = -r*sr + u*cr
+    return r2.astype(np.float32), u2.astype(np.float32), f.astype(np.float32)
+
+def world_dir_to_local(dir_world: np.ndarray) -> np.ndarray:
+    """
+    Convert a world-space direction to the rocket's *local* (pre-rotated) space,
+    matching the mapping used in draw_missile() (forward_axis = 'Y' or 'Z').
+    """
+    r, u, f = body_basis_from_angles(g_yaw, g_pitch, g_roll)
+    if g_cfg.model.forward_axis.upper() == "Z":
+        # Local axes: X→right, Y→up, Z→forward
+        M = np.column_stack((r, u, f))   # local→world
+    else:
+        # Local axes: X→right, Y→forward, Z→up
+        M = np.column_stack((r, f, u))   # local→world
+    # Orthonormal → inverse is transpose
+    return (M.T @ dir_world).astype(np.float32)
+
+
+
+
+# OLD:
+# dir_world = (-g_vel / (speed + 1e-9)) if speed > 0.1 else (-body_forward)
+
+# NEW:
+if speed > 0.1:
+    dir_world = - (g_vel / (speed + 1e-9))      # world-space opposite velocity
+else:
+    _, _, fwdW = body_basis_from_angles(g_yaw, g_pitch, g_roll)
+    dir_world = -fwdW
+dir_local = world_dir_to_local(dir_world)       # convert to local for draw_contrail(...)
+
+
+
+
+# OLD:
+# dir_world = (-g_vel / (speed + 1e-9)) if speed > 0.1 else (-body_forward)
+
+# NEW:
+if speed > 0.1:
+    dir_world = - (g_vel / (speed + 1e-9))      # world-space opposite velocity
+else:
+    _, _, fwdW = body_basis_from_angles(g_yaw, g_pitch, g_roll)
+    dir_world = -fwdW
+dir_local = world_dir_to_local(dir_world)       # convert to local for draw_contrail(...)
+
+
+
+
+import sys, os, subprocess
+from pathlib import Path
+
+def launch_missile_sim():
+    root = Path(__file__).resolve().parents[1]   # project root
+    sim  = root / "missile_sim.py"
+    cfg  = root / "config.json"
+
+    # Optional: pass env flags if you toggled assimp before
+    env = os.environ.copy()
+    # env["PYMISSILE_USE_ASSIMP"] = "0"
+
+    # On Windows: create a separate console window (optional)
+    creation = 0
+    if os.name == "nt":
+        creation = subprocess.CREATE_NEW_CONSOLE
+
+    # Fire and forget
+    subprocess.Popen(
+        [sys.executable, str(sim), "--config", str(cfg)],
+        cwd=str(root),
+        env=env,
+        creationflags=creation
+    )
+
+
+
+
+# PySide6 example
+from PySide6.QtWidgets import QPushButton
+# ...
+self.btn_open_gl.clicked.connect(launch_missile_sim)
