@@ -1,0 +1,6 @@
+Everything is working fine except for the contrail direction.
+1. The contrail must be opposite to the missile velocity based on fixed map axes, but the direction seems to follow the missile orientation.
+
+And now I need new features added.
+
+2. This whole missile_sim.py code was intended as a submodule for the larger gui i've been making. The main.py code opens up gl_viewer.py module in the modules folder when btn_open_gl is clicked in gui. I want to connect the gui code to the missile_sim.py now. Tell me how I can seamlessly turn on missile_sim.py by pressing the same button in gui.
