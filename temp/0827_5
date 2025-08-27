@@ -1,0 +1,252 @@
+def _telemetry_loop():
+    cfg = g_cfg.telemetry
+    interval = max(1, int(cfg.interval_ms)) / 1000.0
+
+    # TCP server (non-blocking)
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind((cfg.host, int(cfg.port)))
+        srv.listen(1)
+        srv.setblocking(False)
+        print(f"[telemetry] serving on {cfg.host}:{cfg.port} every {cfg.interval_ms} ms")
+    except Exception as e:
+        print("[telemetry] bind/listen failed:", e)
+        srv.close()
+        return
+
+    logf = None
+    conn = None
+    next_t = time.perf_counter()
+
+    try:
+        while not g_tel_stop.is_set():
+            # accept new client if any
+            if conn is None:
+                try:
+                    conn, addr = srv.accept()
+                    conn.setblocking(False)
+                    print(f"[telemetry] client {addr} connected")
+                except (BlockingIOError, InterruptedError):
+                    pass
+
+            now = time.perf_counter()
+            if now < next_t:
+                time.sleep(min(0.002, max(0.0, next_t - now)))
+                continue
+
+            # -------- open/rotate logfile on first LAUNCH ----------
+            if cfg.log_enable and (logf is None) and g_has_launched:
+                log_path = (PROJECT_ROOT / cfg.log_dir)
+                logf = _open_next_logfile(log_path)
+                if logf:
+                    print(f"[telemetry] logging to {log_path.resolve()}")
+
+            snap = telemetry_snapshot()
+            line = json.dumps(snap, ensure_ascii=False) + "\n"
+
+            # log (only after launch, one file per flight)
+            if logf:
+                try:
+                    logf.write(line)
+                except Exception:
+                    pass
+
+            # send to client (optional)
+            if conn:
+                try:
+                    conn.sendall(line.encode("utf-8"))
+                except Exception:
+                    try: conn.close()
+                    except: pass
+                    conn = None
+                    print("[telemetry] client disconnected")
+
+            next_t += interval
+
+            # flight end → close current log and wait for next launch
+            if g_has_launched and (not g_sim_active):
+                if logf:
+                    try: logf.close()
+                    except: pass
+                    logf = None
+                # wait for next launch (don’t exit the thread)
+    finally:
+        try: srv.close()
+        except: pass
+        try:
+            if conn: conn.close()
+        except: pass
+        try:
+            if logf: logf.close()
+        except: pass
+        print("[telemetry] stopped")
+
+
+
+
+def cmd_launch():
+    global g_has_launched, g_launch_t, g_sim_active
+    if not g_has_launched:
+        g_time = 0.0              # optional if you want time start at launch
+        g_has_launched = True
+        g_launch_t = g_time
+        g_sim_active = True
+
+
+
+
+if g_pos[1] <= ground_y:
+    g_pos[1] = ground_y
+    g_vel[:] = 0.0; g_acc[:] = 0.0
+    g_yaw_rate *= .2; g_pitch_rate *= .2; g_roll_rate *= .2
+    if g_has_launched:
+        g_sim_active = False    # << lets logger close file
+        g_aborted = True
+        return
+
+
+
+
+from PySide6.QtWidgets import QTableWidget
+
+def _rebuild_table_map(self):
+    """Map each page index of tabWidget_3 → the QTableWidget inside that page."""
+    self.table_map.clear()
+    tabw = widgets.tabWidget_3               # <-- this is your telemetry tabs container
+    for i in range(tabw.count()):
+        page = tabw.widget(i)
+        tbl = page.findChild(QTableWidget)
+        if tbl is not None:
+            self.table_map[i] = tbl
+
+# in __init__ right after setupUi / widgets assigned:
+self._rebuild_table_map()
+self.tabw = widgets.tabWidget_3   # convenience alias
+
+
+
+
+from PySide6.QtWidgets import QTableWidget
+
+def _rebuild_table_map(self):
+    """Map each page index of tabWidget_3 → the QTableWidget inside that page."""
+    self.table_map.clear()
+    tabw = widgets.tabWidget_3               # <-- this is your telemetry tabs container
+    for i in range(tabw.count()):
+        page = tabw.widget(i)
+        tbl = page.findChild(QTableWidget)
+        if tbl is not None:
+            self.table_map[i] = tbl
+
+# in __init__ right after setupUi / widgets assigned:
+self._rebuild_table_map()
+self.tabw = widgets.tabWidget_3   # convenience alias
+
+
+
+
+def browse_json_for_current_tab(self):
+    idx = self.tabw.currentIndex()                     # << use tabWidget_3
+    path, _ = QFileDialog.getOpenFileName(self, "Select sensor JSON", "", "JSON (*.json)")
+    if not path: return
+    self.last_json_paths[idx] = path
+    self.settings.setValue(f"tab/{idx}/lastJson", path)
+
+    self.sensor_lists[idx] = self._load_json_return_sensor_names(path)
+    self._populate_table_structure(idx)                # fills the table in that page
+
+    if getattr(self, "graph_win", None) and self.graph_win.isVisible():
+        self.open_graph_window()
+
+
+
+
+def update_sensor_table(self, packet: dict):
+    for idx, sensors in self.sensor_lists.items():
+        if idx not in self.table_map: 
+            continue
+        tbl = self.table_map[idx]
+        now = time.time()
+        for row, name in enumerate(sensors):
+            if name not in packet:
+                continue
+            self.last_seen[name] = now
+            rng_low, rng_high = None, None
+            rng_txt = tbl.item(row, 5).text()
+            if rng_txt.strip() not in ("—", "-",""):
+                try:
+                    rng_low, rng_high = eval(rng_txt)
+                except Exception:
+                    pass
+            value = packet[name]
+            isok = "OK" if (rng_low is None or value >= rng_low) and (rng_high is None or value <= rng_high) else "NG"
+            tbl.setItem(row, 1, QTableWidgetItem("Connected"))
+            tbl.setItem(row, 3, QTableWidgetItem(str(round(value, 2))))
+            item_approval = QTableWidgetItem(isok)
+            item_approval.setForeground(QBrush(QColor(0,255,0) if isok=="OK" else QColor(255,0,0)))
+            tbl.setItem(row, 2, item_approval)
+
+
+
+
+def open_graph_window(self) -> None:
+    idx = self.tabw.currentIndex()                  # << use tabWidget_3
+    if idx not in self.sensor_lists:
+        print("Load a JSON first.")
+        return
+    numeric_meta = {
+        name: self.sensor_meta[name]
+        for name in self.sensor_lists[idx]
+        if self.sensor_meta[name]["type"] in ("int", "float")
+    }
+    if not numeric_meta:
+        print("No numeric sensors to plot.")
+        return
+    if self.graph_win and self.graph_win.isVisible():
+        self.sensor_client.data_received.disconnect(self.graph_win.update_from_packet)
+        self.graph_win.close()
+        self.graph_win = None
+
+    from modules.graph_window import GraphWindow
+    self.graph_win = GraphWindow(numeric_meta, parent=self)
+    self.sensor_client.data_received.connect(self.graph_win.update_from_packet)
+    self.graph_win.destroyed.connect(lambda _: setattr(self, "graph_win", None))
+    self.graph_win.show()
+
+
+
+
+{
+  "sensors": [
+    { "name": "TIME_S", "type": "float", "unit": "s" },
+    { "name": "INS_YAW", "type": "float", "unit": "deg" },
+    { "name": "INS_PITCH", "type": "float", "unit": "deg" },
+    { "name": "INS_ROLL", "type": "float", "unit": "deg" },
+    { "name": "POS_X", "type": "float", "unit": "m" },
+    { "name": "POS_Y", "type": "float", "unit": "m" },
+    { "name": "POS_Z", "type": "float", "unit": "m" },
+    { "name": "VEL_X", "type": "float", "unit": "m/s" },
+    { "name": "VEL_Y", "type": "float", "unit": "m/s" },
+    { "name": "VEL_Z", "type": "float", "unit": "m/s" },
+    { "name": "ACC_X", "type": "float", "unit": "m/s²" },
+    { "name": "ACC_Y", "type": "float", "unit": "m/s²" },
+    { "name": "THRUST_N", "type": "float", "unit": "N" },
+    { "name": "MASS_KG", "type": "float", "unit": "kg" }
+  ]
+}
+
+
+
+
+def open_gl_window(self):
+    root = Path(__file__).resolve().parent
+    sim  = root / "modules" / "missile_sim.py"
+    cfg  = root / "json" / "config.json"
+    creation = subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0
+    subprocess.Popen([sys.executable, str(sim), "--config", str(cfg)],
+                     cwd=str(root), creationflags=creation)
+
+
+
+
